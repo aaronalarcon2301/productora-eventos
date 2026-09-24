@@ -1,14 +1,14 @@
 // enrutador central - conecta todos los sub-enrutadores bajo /api
 
 import { Router } from 'express';
-import especieRoutes from './especie.routes.js';
-import recintoRoutes from './recinto.routes.js';
-import animalRoutes from './animal.routes.js';
+import clienteRoutes from './cliente.routes.js';
+import lugarRoutes from './lugar.routes.js';
+import eventoRoutes from './evento.routes.js';
 
 const router = Router();
 
-router.use('/especies', especieRoutes);
-router.use('/recintos', recintoRoutes);
-router.use('/animals', animalRoutes);
+router.use('/clientes', clienteRoutes);
+router.use('/lugares', lugarRoutes);
+router.use('/eventos', eventoRoutes);
 
 export default router;

@@ -7,19 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Especie {
-  id          Int      @id @default(autoincrement())
-  nombre      String   @unique @db.VarChar(80)
-  descripcion String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @db.VarChar(100)
+  email     String?  @unique @db.VarChar(120)
+  telefono  String?  @db.VarChar(30)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  animales    Animal[]
+  eventos   Evento[]
 
-  @@map("especies")
+  @@map("clientes")
 }
 
-model Recinto {
+model Lugar {
   id        Int      @id @default(autoincrement())
   nombre    String   @unique @db.VarChar(100)
   ubicacion String?  @db.VarChar(150)
@@ -27,40 +28,41 @@ model Recinto {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  animales  Animal[]
+  eventos  Evento[]
 
-  @@map("recintos")
+  @@map("lugares")
 }
 
-model Animal {
-  id          Int      @id @default(autoincrement())
-  nombre      String   @db.VarChar(100)
-  edad        Int
-  peso        Float?
-  disponible  Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Evento {
+  id           Int      @id @default(autoincrement())
+  nombre       String   @db.VarChar(100)
+  fecha        DateTime
+  numInvitados Int
+  presupuesto  Float?
+  confirmado   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  especieId   Int
-  especie     Especie  @relation(fields: [especieId], references: [id], onDelete: Restrict)
+  clienteId    Int
+  cliente      Cliente  @relation(fields: [clienteId], references: [id], onDelete: Restrict)
 
-  recintoId   Int
-  recinto     Recinto  @relation(fields: [recintoId], references: [id], onDelete: Restrict)
+  lugarId      Int
+  lugar        Lugar    @relation(fields: [lugarId], references: [id], onDelete: Restrict)
 
-  comentarios Comentario[]
+  reclamos     Reclamo[]
 
-  @@map("animales")
+  @@map("eventos")
 }
 
-model Comentario {
+model Reclamo {
   id           Int      @id @default(autoincrement())
   autor        String   @db.VarChar(100)
   calificacion Int
-  comentario   String   @db.Text
+  mensaje      String   @db.Text
   createdAt    DateTime @default(now())
 
-  animalId     Int
-  animal       Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  eventoId     Int
+  evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
-  @@map("comentarios")
+  @@map("reclamos")
 }

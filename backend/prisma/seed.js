@@ -1,6 +1,6 @@
 /* 
-Script de seed para la bd - utiliza Faker para generar datos falsos pero realistas, incluyendo especies, recintos, 
-animales y comentarios.
+Script de seed para la bd - utiliza Faker para generar datos falsos pero realistas, incluyendo clientes, lugares, 
+eventos y reclamos de una productora de eventos.
 
 => Faker es una librería que genera datos falsos con apariencia real (nombres, emails, direcciones, fechas, etc.). 
 Es perfecta para poblar tu base de datos en desarrollo y tener contenido visualmente atractivo para el frontend 
@@ -14,69 +14,71 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Limpiando datos anteriores...');
-  await prisma.comentario.deleteMany();
-  await prisma.animal.deleteMany();
-  await prisma.especie.deleteMany();
-  await prisma.recinto.deleteMany();
+  await prisma.reclamo.deleteMany();
+  await prisma.evento.deleteMany();
+  await prisma.cliente.deleteMany();
+  await prisma.lugar.deleteMany();
 
-  console.log('=> Creando especies...');
-  const nombresEspecies = ['Mamífero', 'Ave', 'Reptil', 'Anfibio', 'Pez'];
-  const especies = await Promise.all(
-    nombresEspecies.map((nombre) =>
-      prisma.especie.create({
+  console.log('=> Creando clientes...');
+  const clientes = await Promise.all(
+    Array.from({ length: 6 }).map(() =>
+      prisma.cliente.create({
         data: {
-          nombre,
-          descripcion: faker.lorem.sentence(),
+          nombre: faker.person.fullName(),
+          email: faker.internet.email(),
+          telefono: faker.phone.number(),
         },
       })
     )
   );
 
-  console.log('=> Creando recintos...');
-  const nombresRecintos = ['Sabana Africana', 'Selva Tropical', 'Zona Polar', 'Humedal'];
-  const recintos = await Promise.all(
-    nombresRecintos.map((nombre) =>
-      prisma.recinto.create({
+  console.log('=> Creando lugares...');
+  const nombresLugares = ['Salón Las Condes', 'Quinta Vergara', 'Terraza Bellavista', 'Centro de Eventos Andes'];
+  const lugares = await Promise.all(
+    nombresLugares.map((nombre) =>
+      prisma.lugar.create({
         data: {
           nombre,
           ubicacion: faker.location.city(),
-          capacidad: faker.number.int({ min: 5, max: 30 }),
+          capacidad: faker.number.int({ min: 50, max: 500 }),
         },
       })
     )
   );
 
-  console.log('=> Creando animales...');
-  const nombresAnimales = [
-    'León', 'Jirafa', 'Elefante', 'Pingüino', 'Cocodrilo',
-    'Rana Dorada', 'Tucán', 'Oso Panda', 'Flamenco', 'Tortuga Gigante',
+  console.log('=> Creando eventos...');
+  const nombresEventos = [
+    'Matrimonio Pérez-Soto', 'Cumpleaños 50 años Andrea', 'Concierto banda local',
+    'Charla de innovación tecnológica', 'Aniversario empresa ConstruSur', 'Bautizo familia Rivas',
+    'Lanzamiento de producto Nutrisana', 'Graduación colegio San Martín',
   ];
 
-  const animales = await Promise.all(
-    nombresAnimales.map((nombre) =>
-      prisma.animal.create({
+  const eventos = await Promise.all(
+    nombresEventos.map((nombre) =>
+      prisma.evento.create({
         data: {
           nombre,
-          edad: faker.number.int({ min: 1, max: 20 }),
-          peso: faker.number.float({ min: 2, max: 200, fractionDigits: 1 }),
-          disponible: faker.datatype.boolean(),
-          especieId: faker.helpers.arrayElement(especies).id,
-          recintoId: faker.helpers.arrayElement(recintos).id,
+          fecha: faker.date.soon({ days: 180 }),
+          numInvitados: faker.number.int({ min: 20, max: 300 }),
+          presupuesto: faker.number.float({ min: 300000, max: 8000000, fractionDigits: 0 }),
+          confirmado: faker.datatype.boolean(),
+          clienteId: faker.helpers.arrayElement(clientes).id,
+          lugarId: faker.helpers.arrayElement(lugares).id,
         },
       })
     )
   );
 
-  console.log('=> Creando comentarios...');
-  for (const animal of animales) {
-    const cantidadComentarios = faker.number.int({ min: 0, max: 4 });
-    for (let i = 0; i < cantidadComentarios; i++) {
-      await prisma.comentario.create({
+  console.log('=> Creando reclamos...');
+  for (const evento of eventos) {
+    const cantidadReclamos = faker.number.int({ min: 0, max: 4 });
+    for (let i = 0; i < cantidadReclamos; i++) {
+      await prisma.reclamo.create({
         data: {
           autor: faker.person.fullName(),
           calificacion: faker.number.int({ min: 1, max: 5 }),
-          comentario: faker.lorem.sentences(2),
-          animalId: animal.id,
+          mensaje: faker.lorem.sentences(2),
+          eventoId: evento.id,
         },
       });
     }
