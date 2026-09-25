@@ -6,13 +6,15 @@ export const createEventoSchema = z.object({
   numInvitados: z.number().int().positive('Debe haber al menos 1 invitado'),
   presupuesto: z.number().positive().optional(),
   confirmado: z.boolean().default(false),
+  fechaPago: z.coerce.date().optional(),
+  montoAbono: z.number().positive().optional(),
   clienteId: z.number().int().positive('Debe indicar un cliente válido'),
   lugarId: z.number().int().positive('Debe indicar un lugar válido'),
 });
 
 export const updateEventoSchema = createEventoSchema.partial();
 
-export const filtroEventoSchema = z.object({
-  clienteId: z.string().regex(/^\d+$/).transform(Number).optional(),
-  lugarId: z.string().regex(/^\d+$/).transform(Number).optional(),
+// Si no se envía fechaSolicitud, el backend usa la fecha/hora actual.
+export const cancelarEventoSchema = z.object({
+  fechaSolicitud: z.coerce.date().optional(),
 });

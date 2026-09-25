@@ -45,3 +45,42 @@ export const deleteEvento = async (req, res, next) => {
     next(error);
   }
 };
+
+export const cancelarEvento = async (req, res, next) => {
+  try {
+    const evento = await eventoService.getEventoById(req.params.id);
+    if (!evento) return res.status(404).json({ error: 'Evento no encontrado' });
+
+    if (evento.cancelado) {
+      return res.status(400).json({ error: 'El evento ya se encuentra cancelado' });
+    }
+    if (!evento.confirmado) {
+      return res.status(400).json({ error: 'Solo se pueden cancelar eventos previamente confirmados' });
+    }
+    if (!evento.fechaPago || !evento.montoAbono) {
+      return res.status(400).json({ error: 'El evento no tiene registrado el pago del abono, no se puede calcular la devolución' });
+    }
+
+    const fechaSolicitud = req.body.fechaSolicitud || new Date();
+    const { diasHabiles, porcentaje, montoDevolucion } = eventoService.calcularDevolucion(evento, fechaSolicitud);
+
+    const eventoCancelado = await eventoService.cancelarEvento(evento.id, fechaSolicitud, montoDevolucion);
+
+    const comprobante = {
+      numeroComprobante: `DEV-${evento.id}-${Date.now()}`,
+      evento: eventoCancelado.nombre,
+      cliente: eventoCancelado.cliente.nombre,
+      lugar: eventoCancelado.lugar.nombre,
+      fechaPago: evento.fechaPago,
+      fechaCancelacion: fechaSolicitud,
+      diasHabilesTranscurridos: diasHabiles,
+      porcentajeDevolucion: porcentaje * 100,
+      montoAbono: evento.montoAbono,
+      montoDevolucion,
+    };
+
+    res.json({ evento: eventoCancelado, comprobante });
+  } catch (error) {
+    next(error);
+  }
+};

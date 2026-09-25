@@ -11,13 +11,13 @@ import {
   createReclamo,
 } from '../controllers/reclamo.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
-import { createEventoSchema, updateEventoSchema, filtroEventoSchema } from '../schemas/evento.schema.js';
+import { createEventoSchema, updateEventoSchema } from '../schemas/evento.schema.js';
 import { createReclamoSchema } from '../schemas/reclamo.schema.js';
 import { idParamSchema } from '../schemas/cliente.schema.js';
 
 const router = Router();
 
-router.get('/', validate(filtroEventoSchema, 'query'), getEventos);
+router.get('/', getEventos);
 router.get('/:id', validate(idParamSchema, 'params'), getEventoById);
 router.post('/', validate(createEventoSchema, 'body'), createEvento);
 router.put('/:id', validate(idParamSchema, 'params'), validate(updateEventoSchema, 'body'), updateEvento);

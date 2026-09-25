@@ -34,22 +34,32 @@ model Lugar {
 }
 
 model Evento {
-  id           Int      @id @default(autoincrement())
-  nombre       String   @db.VarChar(100)
-  fecha        DateTime
-  numInvitados Int
-  presupuesto  Float?
-  confirmado   Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               Int       @id @default(autoincrement())
+  nombre           String    @db.VarChar(100)
+  fecha            DateTime
+  numInvitados     Int
+  presupuesto      Float?
+  confirmado       Boolean   @default(false)
 
-  clienteId    Int
-  cliente      Cliente  @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  // --- Abono ---
+  fechaPago        DateTime?
+  montoAbono       Float?
 
-  lugarId      Int
-  lugar        Lugar    @relation(fields: [lugarId], references: [id], onDelete: Restrict)
+  // --- Cancelación y devolución ---
+  cancelado        Boolean   @default(false)
+  fechaCancelacion DateTime?
+  montoDevolucion  Float?
 
-  reclamos     Reclamo[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  clienteId        Int
+  cliente          Cliente   @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+
+  lugarId          Int
+  lugar            Lugar     @relation(fields: [lugarId], references: [id], onDelete: Restrict)
+
+  reclamos         Reclamo[]
 
   @@map("eventos")
 }
