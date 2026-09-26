@@ -1,6 +1,3 @@
-// middleware centralizado de manejo de errores - traduce los códigos de error de 
-// prisma a respuestas HTTP con el código de estado correspondiente
-
 export const errorHandler = (err, req, res, next) => {
   console.error(err);
 
