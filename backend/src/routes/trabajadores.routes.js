@@ -3,6 +3,9 @@ import * as trabajadoresController from "../controllers/trabajadores.controller.
 
 const router = Router();
 
+// GET /api/trabajadores
+router.get("/", trabajadoresController.listar);
+
 // GET /api/trabajadores/:trabajadorId/historial
 router.get("/:trabajadorId/historial", trabajadoresController.obtenerHistorial);
 

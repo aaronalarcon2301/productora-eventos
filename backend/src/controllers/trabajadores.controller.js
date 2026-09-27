@@ -1,5 +1,14 @@
 import * as trabajadorService from "../services/trabajador.service.js";
 
+export async function listar(req, res, next) {
+  try {
+    const trabajadores = await trabajadorService.listarTrabajadores();
+    res.json(trabajadores);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function obtenerHistorial(req, res, next) {
   try {
     const trabajadorId = Number(req.params.trabajadorId);

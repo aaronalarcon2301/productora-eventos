@@ -19,6 +19,12 @@ export async function recalcularPromedioGeneral(trabajadorId) {
 }
 
 
+export async function listarTrabajadores() {
+  return prisma.trabajador.findMany({
+    orderBy: { nombre: "asc" },
+  });
+}
+
 export async function obtenerHistorial(trabajadorId) {
   const trabajador = await prisma.trabajador.findUnique({
     where: { id: trabajadorId },
