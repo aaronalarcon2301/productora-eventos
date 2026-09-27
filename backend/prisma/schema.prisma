@@ -60,6 +60,8 @@ model Evento {
   lugar            Lugar     @relation(fields: [lugarId], references: [id], onDelete: Restrict)
 
   reclamos         Reclamo[]
+  evaluaciones     Evaluacion[]
+  incidentes       Incidente[]
 
   @@map("eventos")
 }
@@ -75,4 +77,84 @@ model Reclamo {
   evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   @@map("reclamos")
+}
+
+enum RolTrabajador {
+  TECNICO_SONIDO
+  TECNICO_ILUMINACION
+  MONTAJISTA
+  ANIMADOR
+  GARZON
+  ANFITRION
+  ASEO_LOGISTICA
+  SEGURIDAD
+}
+
+enum TipoIncidente {
+  INASISTENCIA
+  FALTA_GRAVE
+}
+
+model Trabajador {
+  id              Int           @id @default(autoincrement())
+  nombre          String        @db.VarChar(100)
+  rolPrincipal    RolTrabajador
+  bloqueado       Boolean       @default(false)
+  promedioGeneral Float?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  evaluaciones Evaluacion[]
+  incidentes   Incidente[]
+
+  @@map("trabajadores")
+}
+
+
+model Evaluacion {
+  id Int @id @default(autoincrement())
+
+  trabajadorId Int
+  trabajador   Trabajador @relation(fields: [trabajadorId], references: [id], onDelete: Restrict)
+
+  eventoId Int
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  rolEvento RolTrabajador
+
+  puntualidad           Int
+  comentarioPuntualidad String? @db.Text
+  trato                 Int
+  comentarioTrato       String? @db.Text
+  eficiencia            Int
+  comentarioEficiencia  String? @db.Text
+
+  
+  manejoEquipos           Int?
+  comentarioManejoEquipos String? @db.Text
+
+  promedioEvaluacion Float // calculado en evaluacion.service.js
+  adminId            Int?
+
+  createdAt DateTime @default(now())
+
+  @@unique([trabajadorId, eventoId]) // una evaluación por trabajador por evento
+  @@map("evaluaciones")
+}
+
+model Incidente {
+  id Int @id @default(autoincrement())
+
+  trabajadorId Int
+  trabajador   Trabajador @relation(fields: [trabajadorId], references: [id], onDelete: Restrict)
+
+  eventoId Int?
+  evento   Evento? @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  tipo   TipoIncidente
+  motivo String? @db.Text // obligatorio solo si tipo = FALTA_GRAVE (se valida en incidente.schema.js)
+
+  createdAt DateTime @default(now())
+
+  @@map("incidentes")
 }
