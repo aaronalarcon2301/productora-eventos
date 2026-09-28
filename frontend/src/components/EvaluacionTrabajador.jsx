@@ -36,16 +36,16 @@ function EvaluacionTrabajador() {
       eventoId: Number(eventoId),
       rolEvento,
       puntualidad: Number(puntualidad),
-      comentarioPuntualidad,
+      comentarioPuntualidad: comentarioPuntualidad || undefined,
       trato: Number(trato),
-      comentarioTrato,
+      comentarioTrato: comentarioTrato || undefined,
       eficiencia: Number(eficiencia),
-      comentarioEficiencia,
+      comentarioEficiencia: comentarioEficiencia || undefined,
     };
 
     if (esTecnico) {
       body.manejoEquipos = Number(manejoEquipos);
-      body.comentarioManejoEquipos = comentarioManejoEquipos;
+      body.comentarioManejoEquipos = comentarioManejoEquipos || undefined;
     }
 
     fetch(`${API_URL}/evaluaciones`, {
