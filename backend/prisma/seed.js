@@ -84,7 +84,7 @@ async function main() {
     }
   }
 
-  console.log('--- Seed completado :V ---');
+  console.log('--- Seed completado :) ---');
 }
 
 main()

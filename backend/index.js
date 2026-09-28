@@ -20,7 +20,7 @@ app.use(errorHandler);
 async function bootstrap() {
   try {
     await prisma.$connect();
-    console.log('=> Conexión a PostgreSQL establecida con éxito :3');
+    console.log('=> Conexión a PostgreSQL establecida con éxito :)');
 
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);
