@@ -1,5 +1,4 @@
 // Lista los clientes de la productora, mostrando cuántos eventos tiene cada uno.
-// Este componente ya está resuelto - úsalo como referencia para construir el catálogo de Eventos.
 
 import { useState, useEffect } from 'react';
 import { API_URL } from '../api/config';

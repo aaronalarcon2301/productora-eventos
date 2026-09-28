@@ -2,8 +2,8 @@ import prisma from '../config/prisma.js';
 
 export const getAllEventos = (filtros = {}) => {
   const where = {};
-  if (filtros.clienteId) where.clienteId = filtros.clienteId;
-  if (filtros.lugarId) where.lugarId = filtros.lugarId;
+  if (filtros.clienteId) where.clienteId = Number(filtros.clienteId);
+  if (filtros.lugarId) where.lugarId = Number(filtros.lugarId);
 
   return prisma.evento.findMany({
     where,
@@ -35,15 +35,19 @@ export const eventoExists = async (id) => {
   return evento !== null;
 };
 
+// Cuenta los días hábiles (lunes a viernes) entre dos fechas.
+// Se cuenta desde el día SIGUIENTE a fechaInicio hasta fechaFin, inclusive.
+// Usa métodos UTC para que el resultado no dependa de la zona horaria del servidor
+// (una fecha "2026-09-21" llega como medianoche UTC y en Chile se vería como el día anterior).
 export const contarDiasHabiles = (fechaInicio, fechaFin) => {
   let contador = 0;
   const actual = new Date(fechaInicio);
-  actual.setDate(actual.getDate() + 1);
+  actual.setUTCDate(actual.getUTCDate() + 1);
 
   while (actual <= fechaFin) {
-    const diaSemana = actual.getDay(); // 0 = domingo, 6 = sábado
+    const diaSemana = actual.getUTCDay(); // 0 = domingo, 6 = sábado
     if (diaSemana !== 0 && diaSemana !== 6) contador++;
-    actual.setDate(actual.getDate() + 1);
+    actual.setUTCDate(actual.getUTCDate() + 1);
   }
 
   return contador;

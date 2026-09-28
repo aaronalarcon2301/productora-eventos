@@ -1,5 +1,4 @@
 // Lista las especies del zoológico, mostrando cuántos animales tiene cada una.
-// Este componente ya está resuelto - úsalo como referencia para construir el catálogo de Animales.
 
 import { useState, useEffect } from 'react';
 import { API_URL } from '../api/config';

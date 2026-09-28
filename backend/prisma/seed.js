@@ -54,19 +54,26 @@ async function main() {
   ];
 
   const eventos = await Promise.all(
-    nombresEventos.map((nombre) =>
-      prisma.evento.create({
+    nombresEventos.map((nombre) => {
+      const presupuesto = faker.number.float({ min: 300000, max: 8000000, fractionDigits: 0 });
+      const confirmado = faker.datatype.boolean();
+
+      return prisma.evento.create({
         data: {
           nombre,
           fecha: faker.date.soon({ days: 180 }),
           numInvitados: faker.number.int({ min: 20, max: 300 }),
-          presupuesto: faker.number.float({ min: 300000, max: 8000000, fractionDigits: 0 }),
-          confirmado: faker.datatype.boolean(),
+          presupuesto,
+          confirmado,
+          // Si está confirmado, ya pagó el 50% de abono hace entre 1 y 30 días
+          // (así se pueden probar los tres tramos de devolución: 100%, 50% y 0%)
+          fechaPago: confirmado ? faker.date.recent({ days: 30 }) : undefined,
+          montoAbono: confirmado ? Math.round(presupuesto * 0.5) : undefined,
           clienteId: faker.helpers.arrayElement(clientes).id,
           lugarId: faker.helpers.arrayElement(lugares).id,
         },
-      })
-    )
+      });
+    })
   );
 
   console.log('=> Creando reclamos...');
@@ -84,7 +91,7 @@ async function main() {
     }
   }
 
-  console.log('--- Seed completado :) ---');
+  console.log('--- Seed completado :V ---');
 }
 
 main()

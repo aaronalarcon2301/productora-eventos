@@ -124,7 +124,7 @@ function AnimalCatalogo() {
               rows="3"
               style={{ display: 'block', width: '100%', marginBottom: '10px', padding: '8px' }}
             />
-            {errorZod && <p style={{ color: 'red', fontWeight: 'bold' }}>⚠️ {errorZod}</p>}
+            {errorZod && <p style={{ color: 'red', fontWeight: 'bold' }}>{errorZod}</p>}
             <button type="submit" style={{ padding: '8px 16px', cursor: 'pointer' }}>
               Agregar comentario
             </button>

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { API_URL } from '../api/config';
+import CancelacionEvento from './CancelacionEvento';
 
 function EventoCatalogo() {
   const [eventos, setEventos] = useState([]);
+  const [todosLosEventos, setTodosLosEventos] = useState([]); // para el calendario compartido (sin filtros)
   const [clientes, setClientes] = useState([]);
   const [lugares, setLugares] = useState([]);
 
@@ -26,6 +28,10 @@ function EventoCatalogo() {
     fetch(`${API_URL}/lugares`)
       .then((res) => res.json())
       .then((data) => setLugares(data));
+
+    fetch(`${API_URL}/eventos`)
+      .then((res) => res.json())
+      .then((data) => setTodosLosEventos(data));
   }, []);
 
   useEffect(() => {
@@ -37,6 +43,19 @@ function EventoCatalogo() {
       .then((res) => res.json())
       .then((data) => setEventos(data));
   }, [clienteId, lugarId]);
+
+  // Se llama cuando el panel de abono/cancelación modifica un evento:
+  // refresca la lista, el detalle y el calendario sin recargar la página.
+  const actualizarEvento = (actualizado) => {
+    const combinar = (lista) => lista.map((e) => (e.id === actualizado.id ? { ...e, ...actualizado } : e));
+    setEventos(combinar);
+    setTodosLosEventos(combinar);
+    setEventoSeleccionado((prev) => ({ ...prev, ...actualizado }));
+  };
+
+  const fechasOcupadas = todosLosEventos
+    .filter((e) => e.confirmado && !e.cancelado)
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
   const verDetalle = (evento) => {
     setEventoSeleccionado(evento);
@@ -96,6 +115,20 @@ function EventoCatalogo() {
         </select>
       </div>
 
+      {/* Calendario compartido: solo fechas ocupadas (confirmadas y no canceladas) */}
+      <div style={{ background: '#f5f8ff', border: '1px solid #cdd9f5', borderRadius: '8px', padding: '12px', marginBottom: '20px' }}>
+        <strong> Calendario compartido — fechas ocupadas</strong>
+        {fechasOcupadas.length === 0 ? (
+          <p style={{ margin: '6px 0 0' }}>No hay fechas ocupadas.</p>
+        ) : (
+          <ul style={{ margin: '6px 0 0', paddingLeft: '20px' }}>
+            {fechasOcupadas.map((e) => (
+              <li key={e.id}>{new Date(e.fecha).toLocaleDateString('es-CL')} — {e.nombre}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {/* Lista de Eventos */}
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {eventos.map((evento) => (
@@ -104,8 +137,8 @@ function EventoCatalogo() {
             onClick={() => verDetalle(evento)}
             style={{ cursor: 'pointer', color: '#0066cc', padding: '5px 0', textDecoration: 'underline' }}
           >
-            🎉 {evento.nombre} — {new Date(evento.fecha).toLocaleDateString('es-CL')}
-            {evento.confirmado ? ' ✅' : ' ⏳'}
+             {evento.nombre} — {new Date(evento.fecha).toLocaleDateString('es-CL')}
+            {evento.cancelado ? 'cancelado' : evento.confirmado ? ' ✅' : ' ⏳'}
           </li>
         ))}
       </ul>
@@ -118,10 +151,16 @@ function EventoCatalogo() {
             Fecha: {new Date(eventoSeleccionado.fecha).toLocaleDateString('es-CL')}<br />
             Invitados: {eventoSeleccionado.numInvitados}<br />
             Presupuesto: {eventoSeleccionado.presupuesto ? `$${eventoSeleccionado.presupuesto.toLocaleString('es-CL')}` : 'Sin definir'}<br />
-            Estado: {eventoSeleccionado.confirmado ? 'Confirmado (abono pagado)' : 'Pendiente de abono'}<br />
+            Estado: {eventoSeleccionado.cancelado ? 'Cancelado' : eventoSeleccionado.confirmado ? 'Confirmado (abono pagado)' : 'Pendiente de abono'}<br />
             Cliente: {eventoSeleccionado.cliente?.nombre}<br />
             Lugar: {eventoSeleccionado.lugar?.nombre}
           </p>
+
+          <CancelacionEvento
+            key={eventoSeleccionado.id}
+            evento={eventoSeleccionado}
+            onActualizado={actualizarEvento}
+          />
 
           <h4>Reclamos y sugerencias {promedio ? `(promedio: ${promedio.toFixed(1)} / 5)` : ''}</h4>
           {reclamos.length === 0 ? (
