@@ -19,22 +19,28 @@ function ClienteList() {
         setError('No se pudo conectar con el servidor');
         setCargando(false);
       });
-  }, []); // se ejecuta una sola vez, al montar el componente
+  }, []);
 
-  if (cargando) return <p>Cargando clientes...</p>;
-  if (error) return <p>{error}</p>;
+  if (cargando) return <p className="empty">Cargando clientes…</p>;
+  if (error) return <p className="alert alert-error">{error}</p>;
 
   return (
-    <div>
-      <h2>Clientes</h2>
-      <ul>
-        {clientes.map((cliente) => (
-          <li key={cliente.id}>
-            {cliente.nombre} — {cliente._count.eventos} evento(es)
-          </li>
-        ))}
-      </ul>
-    </div>
+    <section className="panel">
+      {clientes.length === 0 ? (
+        <p className="empty">Todavía no hay clientes registrados.</p>
+      ) : (
+        <ul className="ledger">
+          {clientes.map((cliente) => (
+            <li key={cliente.id} className="ledger-row">
+              <span className="name">{cliente.nombre}</span>
+              <span className="meta">
+                {cliente._count.eventos} evento{cliente._count.eventos === 1 ? '' : 's'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

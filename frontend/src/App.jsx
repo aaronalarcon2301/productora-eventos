@@ -4,46 +4,35 @@ import LugarList from './components/LugarList';
 import EventoCatalogo from './components/EventoCatalogo';
 import EvaluacionTrabajador from './components/EvaluacionTrabajador';
 
+const TABS = [
+  { id: 'eventos', label: 'Eventos' },
+  { id: 'clientes', label: 'Clientes' },
+  { id: 'lugares', label: 'Lugares' },
+  { id: 'personal', label: 'Personal' },
+];
+
 function App() {
   const [vista, setVista] = useState('eventos');
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>Productora de Eventos NES</h1>
-
-      <nav style={{ marginBottom: '20px' }}>
-        <button
-          onClick={() => setVista('eventos')}
-          style={{
-            padding: '8px 16px',
-            marginRight: '10px',
-            fontWeight: vista === 'eventos' ? 'bold' : 'normal',
-            backgroundColor: vista === 'eventos' ? '#ddd' : '#fff',
-          }}
-        >
-          Eventos
-        </button>
-        <button
-          onClick={() => setVista('evaluacion')}
-          style={{
-            padding: '8px 16px',
-            fontWeight: vista === 'evaluacion' ? 'bold' : 'normal',
-            backgroundColor: vista === 'evaluacion' ? '#ddd' : '#fff',
-          }}
-        >
-          Evaluación de trabajadores
-        </button>
+    <div>
+      <nav className="navbar">
+        <h2>NES Producciones</h2>
+        <div className="nav-links">
+          {TABS.map((tab) => (
+            <button key={tab.id} className={vista === tab.id ? 'active' : ''} onClick={() => setVista(tab.id)}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </nav>
 
-      {vista === 'eventos' && (
-        <>
-          <ClienteList />
-          <LugarList />
-          <EventoCatalogo />
-        </>
-      )}
-
-      {vista === 'evaluacion' && <EvaluacionTrabajador />}
+      <main className="container">
+        {vista === 'eventos' && <EventoCatalogo />}
+        {vista === 'clientes' && <ClienteList />}
+        {vista === 'lugares' && <LugarList />}
+        {vista === 'personal' && <EvaluacionTrabajador />}
+      </main>
     </div>
   );
 }

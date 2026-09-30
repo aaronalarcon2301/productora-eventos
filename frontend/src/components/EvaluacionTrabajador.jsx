@@ -2,129 +2,58 @@ import { useState, useEffect } from 'react';
 import { API_URL } from '../api/config';
 
 function EvaluacionTrabajador() {
-  const [trabajadores, setTrabajadores] = useState([]);
-  const [eventos, setEventos] = useState([]);
-
-  const [trabajadorId, setTrabajadorId] = useState('');
-  const [eventoId, setEventoId] = useState('');
-  const [rolEvento, setRolEvento] = useState('GARZON');
-
-  const [puntualidad, setPuntualidad] = useState(5);
-  const [trato, setTrato] = useState(5);
-  const [eficiencia, setEficiencia] = useState(5);
-  const [manejoEquipos, setManejoEquipos] = useState(5);
-
-  const [comentarioPuntualidad, setComentarioPuntualidad] = useState('');
-  const [comentarioTrato, setComentarioTrato] = useState('');
-  const [comentarioEficiencia, setComentarioEficiencia] = useState('');
-  const [comentarioManejoEquipos, setComentarioManejoEquipos] = useState('');
-
+  const [data, setData] = useState({ trabajadores: [], eventos: [] });
+  const [form, setForm] = useState({ trabajadorId: '', eventoId: '', rolEvento: 'GARZON' });
+  const [notas, setNotas] = useState({ puntualidad: 5, trato: 5, eficiencia: 5, manejoEquipos: 5 });
   const [mensaje, setMensaje] = useState('');
 
-  const esTecnico = ['TECNICO_SONIDO', 'TECNICO_ILUMINACION', 'MONTAJISTA'].includes(rolEvento);
+  const esTecnico = ['TECNICO_SONIDO', 'TECNICO_ILUMINACION', 'MONTAJISTA'].includes(form.rolEvento);
+  const criterios = ['puntualidad', 'trato', 'eficiencia', ...(esTecnico ? ['manejoEquipos'] : [])];
 
   useEffect(() => {
-    fetch(`${API_URL}/trabajadores`).then((res) => res.json()).then(setTrabajadores);
-    fetch(`${API_URL}/eventos`).then((res) => res.json()).then(setEventos);
+    Promise.all([fetch(`${API_URL}/trabajadores`), fetch(`${API_URL}/eventos`)])
+      .then(async ([resT, resE]) => setData({ trabajadores: await resT.json(), eventos: await resE.json() }));
   }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    const body = {
-      trabajadorId: Number(trabajadorId),
-      eventoId: Number(eventoId),
-      rolEvento,
-      puntualidad: Number(puntualidad),
-      comentarioPuntualidad: comentarioPuntualidad || undefined,
-      trato: Number(trato),
-      comentarioTrato: comentarioTrato || undefined,
-      eficiencia: Number(eficiencia),
-      comentarioEficiencia: comentarioEficiencia || undefined,
-    };
-
-    if (esTecnico) {
-      body.manejoEquipos = Number(manejoEquipos);
-      body.comentarioManejoEquipos = comentarioManejoEquipos || undefined;
-    }
-
     fetch(`${API_URL}/evaluaciones`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          setMensaje(data.error || 'Error al guardar la evaluación');
-          return;
-        }
-        setMensaje('Evaluación guardada correctamente');
-      });
+      body: JSON.stringify({ ...form, ...notas, trabajadorId: Number(form.trabajadorId), eventoId: Number(form.eventoId) }),
+    }).then(res => setMensaje(res.ok ? 'Guardado exitosamente' : 'Error al guardar'));
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>Evaluar trabajador</h2>
-
+    <section className="panel">
+      <h2>Evaluación de Personal</h2>
       <form onSubmit={handleSubmit}>
-        <select value={trabajadorId} onChange={(e) => setTrabajadorId(e.target.value)}>
-          <option value="">-- Trabajador --</option>
-          {trabajadores.map((t) => (
-            <option key={t.id} value={t.id}>{t.nombre}</option>
-          ))}
+        <select required onChange={e => setForm({...form, trabajadorId: e.target.value})}>
+          <option value="">Selecciona trabajador...</option>
+          {data.trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
         </select>
 
-        <select value={eventoId} onChange={(e) => setEventoId(e.target.value)}>
-          <option value="">-- Evento --</option>
-          {eventos.map((ev) => (
-            <option key={ev.id} value={ev.id}>{ev.nombre}</option>
-          ))}
+        <select required onChange={e => setForm({...form, eventoId: e.target.value})}>
+          <option value="">Selecciona evento...</option>
+          {data.eventos.map(ev => <option key={ev.id} value={ev.id}>{ev.nombre}</option>)}
         </select>
 
-        <select value={rolEvento} onChange={(e) => setRolEvento(e.target.value)}>
-          <option value="GARZON">GARZON</option>
-          <option value="ANIMADOR">ANIMADOR</option>
-          <option value="ANFITRION">ANFITRION</option>
-          <option value="ASEO_LOGISTICA">ASEO_LOGISTICA</option>
-          <option value="SEGURIDAD">SEGURIDAD</option>
-          <option value="TECNICO_SONIDO">TECNICO_SONIDO</option>
-          <option value="TECNICO_ILUMINACION">TECNICO_ILUMINACION</option>
-          <option value="MONTAJISTA">MONTAJISTA</option>
+        <select onChange={e => setForm({...form, rolEvento: e.target.value})}>
+          {['GARZON', 'ANIMADOR', 'TECNICO_SONIDO', 'MONTAJISTA'].map(rol => <option key={rol} value={rol}>{rol}</option>)}
         </select>
 
-        <br /><br />
+        <h3>Notas (1 al 5)</h3>
+        {criterios.map(crit => (
+          <div key={crit} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+            <label style={{ width: '120px', textTransform: 'capitalize' }}>{crit}</label>
+            <input type="number" min="1" max="5" value={notas[crit]} onChange={e => setNotas({...notas, [crit]: e.target.value})} style={{ width: '80px', margin: 0 }} />
+          </div>
+        ))}
 
-        <label>Puntualidad: </label>
-        <input type="number" min="1" max="5" value={puntualidad} onChange={(e) => setPuntualidad(e.target.value)} />
-        <input type="text" placeholder="Comentario" value={comentarioPuntualidad} onChange={(e) => setComentarioPuntualidad(e.target.value)} />
-        <br />
-
-        <label>Trato: </label>
-        <input type="number" min="1" max="5" value={trato} onChange={(e) => setTrato(e.target.value)} />
-        <input type="text" placeholder="Comentario" value={comentarioTrato} onChange={(e) => setComentarioTrato(e.target.value)} />
-        <br />
-
-        <label>Eficiencia: </label>
-        <input type="number" min="1" max="5" value={eficiencia} onChange={(e) => setEficiencia(e.target.value)} />
-        <input type="text" placeholder="Comentario" value={comentarioEficiencia} onChange={(e) => setComentarioEficiencia(e.target.value)} />
-        <br />
-
-        {esTecnico && (
-          <>
-            <label>Manejo de equipos: </label>
-            <input type="number" min="1" max="5" value={manejoEquipos} onChange={(e) => setManejoEquipos(e.target.value)} />
-            <input type="text" placeholder="Comentario" value={comentarioManejoEquipos} onChange={(e) => setComentarioManejoEquipos(e.target.value)} />
-            <br />
-          </>
-        )}
-
-        <br />
-        <button type="submit">Guardar</button>
+        <button type="submit" className="btn">Guardar Evaluación</button>
       </form>
-
       {mensaje && <p>{mensaje}</p>}
-    </div>
+    </section>
   );
 }
 
