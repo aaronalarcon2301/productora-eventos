@@ -122,23 +122,48 @@ model Evaluacion {
 
   rolEvento RolTrabajador
 
-  puntualidad           Int
-  comentarioPuntualidad String? @db.Text
-  trato                 Int
-  comentarioTrato       String? @db.Text
-  eficiencia            Int
-  comentarioEficiencia  String? @db.Text
+  
+  llegada                        Int
+  comentarioLlegada               String? @db.Text
+  cumplimientoHorarios            Int
+  comentarioCumplimientoHorarios  String? @db.Text
+  tiemposPreparacion              Int
+  comentarioTiemposPreparacion    String? @db.Text
+  promedioPuntualidad             Float
 
   
-  manejoEquipos           Int?
-  comentarioManejoEquipos String? @db.Text
+  comunicacion           Int
+  comentarioComunicacion String? @db.Text
+  atencion               Int
+  comentarioAtencion     String? @db.Text
+  conducta               Int
+  comentarioConducta     String? @db.Text
+  promedioTrato          Float
 
-  promedioEvaluacion Float // calculado en evaluacion.service.js
+  
+  cumplimiento           Int
+  comentarioCumplimiento String? @db.Text
+  autonomia              Int
+  comentarioAutonomia    String? @db.Text
+  resolucion             Int
+  comentarioResolucion   String? @db.Text
+  promedioEficiencia     Float
+
+  
+  usoEquipos                  Int?
+  comentarioUsoEquipos        String? @db.Text
+  cuidadoEquipos              Int?
+  comentarioCuidadoEquipos    String? @db.Text
+  resolucionTecnica           Int?
+  comentarioResolucionTecnica String? @db.Text
+  promedioManejoEquipos       Float?
+
+  promedioEvaluacion Float 
   adminId            Int?
 
   createdAt DateTime @default(now())
 
-  @@unique([trabajadorId, eventoId]) // una evaluación por trabajador por evento
+  @@unique([trabajadorId, eventoId]) 
   @@map("evaluaciones")
 }
 

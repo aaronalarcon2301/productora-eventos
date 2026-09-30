@@ -18,64 +18,78 @@ export function esRolTecnico(rol) {
 }
 
 const nota = z.number().int().min(1).max(5);
+const comentarioOpcional = z.string().trim().min(1).optional();
 
-export const crearEvaluacionSchema = z
-  .object({
-    trabajadorId: z.number().int().positive(),
-    eventoId: z.number().int().positive(),
-    rolEvento: z.enum(ROLES),
 
-    puntualidad: nota,
-    comentarioPuntualidad: z.string().trim().min(1).optional(),
-    trato: nota,
-    comentarioTrato: z.string().trim().min(1).optional(),
-    eficiencia: nota,
-    comentarioEficiencia: z.string().trim().min(1).optional(),
+export const SUBINDICADORES_BASE = [
+  ["llegada", "comentarioLlegada"],
+  ["cumplimientoHorarios", "comentarioCumplimientoHorarios"],
+  ["tiemposPreparacion", "comentarioTiemposPreparacion"],
+  ["comunicacion", "comentarioComunicacion"],
+  ["atencion", "comentarioAtencion"],
+  ["conducta", "comentarioConducta"],
+  ["cumplimiento", "comentarioCumplimiento"],
+  ["autonomia", "comentarioAutonomia"],
+  ["resolucion", "comentarioResolucion"],
+];
 
-    manejoEquipos: nota.optional(),
-    comentarioManejoEquipos: z.string().trim().min(1).optional(),
 
-    adminId: z.number().int().positive().optional(),
-  })
-  .superRefine((data, ctx) => {
-    
-    const criterios = [
-      ["puntualidad", "comentarioPuntualidad"],
-      ["trato", "comentarioTrato"],
-      ["eficiencia", "comentarioEficiencia"],
-    ];
-    for (const [campoNota, campoComentario] of criterios) {
-      const valor = data[campoNota];
-      if ([1, 2, 5].includes(valor) && !data[campoComentario]) {
+export const SUBINDICADORES_TECNICOS = [
+  ["usoEquipos", "comentarioUsoEquipos"],
+  ["cuidadoEquipos", "comentarioCuidadoEquipos"],
+  ["resolucionTecnica", "comentarioResolucionTecnica"],
+];
+
+const shape = {
+  trabajadorId: z.number().int().positive(),
+  eventoId: z.number().int().positive(),
+  rolEvento: z.enum(ROLES),
+  adminId: z.number().int().positive().optional(),
+};
+for (const [campo, campoComentario] of SUBINDICADORES_BASE) {
+  shape[campo] = nota;
+  shape[campoComentario] = comentarioOpcional;
+}
+for (const [campo, campoComentario] of SUBINDICADORES_TECNICOS) {
+  shape[campo] = nota.optional();
+  shape[campoComentario] = comentarioOpcional;
+}
+
+export const crearEvaluacionSchema = z.object(shape).superRefine((data, ctx) => {
+  
+  for (const [campo, campoComentario] of SUBINDICADORES_BASE) {
+    if ([1, 2, 5].includes(data[campo]) && !data[campoComentario]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [campoComentario],
+        message: `Debes justificar la calificación de "${campo}" cuando la nota es 1, 2 o 5.`,
+      });
+    }
+  }
+
+
+  const tecnico = esRolTecnico(data.rolEvento);
+  for (const [campo, campoComentario] of SUBINDICADORES_TECNICOS) {
+    if (tecnico) {
+      if (data[campo] === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [campo],
+          message: `"${campo}" es obligatorio para roles técnicos.`,
+        });
+      } else if ([1, 2, 5].includes(data[campo]) && !data[campoComentario]) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [campoComentario],
-          message: `Debes justificar la calificación de ${campoNota} cuando la nota es 1, 2 o 5.`,
+          message: `Debes justificar la calificación de "${campo}" cuando la nota es 1, 2 o 5.`,
         });
       }
-    }
-
-
-    const tecnico = esRolTecnico(data.rolEvento);
-    if (tecnico) {
-      if (data.manejoEquipos === undefined) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["manejoEquipos"],
-          message: "El criterio de manejo de equipos es obligatorio para roles técnicos.",
-        });
-      } else if ([1, 2, 5].includes(data.manejoEquipos) && !data.comentarioManejoEquipos) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["comentarioManejoEquipos"],
-          message: "Debes justificar la calificación de manejo de equipos cuando la nota es 1, 2 o 5.",
-        });
-      }
-    } else if (data.manejoEquipos !== undefined) {
+    } else if (data[campo] !== undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["manejoEquipos"],
-        message: "Manejo de equipos solo aplica cuando el rol del evento es técnico.",
+        path: [campo],
+        message: `"${campo}" solo aplica cuando el rol del evento es técnico.`,
       });
     }
-  });
+  }
+});
