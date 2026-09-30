@@ -76,7 +76,7 @@ function EvaluacionTrabajador() {
     fetch(`${API_URL}/eventos`).then((res) => res.json()).then(setEventos);
   }, []);
 
-  
+  // Limpiar valores al cambiar de trabajador
   useEffect(() => {
     setValores(valoresIniciales());
     setMensaje('');
@@ -135,13 +135,15 @@ function EvaluacionTrabajador() {
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
-          const detalle = data.detalles?.map((d) => `${d.campo}: ${d.mensaje}`).join(' / ');
+          // El cambio está aquí: mostramos un solo mensaje general si hay errores de validación
+          const detalle = data.detalles 
+            ? 'Por favor, selecciona trabajador/evento y justifica con comentarios las notas 1, 2 o 5.' 
+            : null;
+            
           setMensaje(detalle || data.error || 'Error al guardar la evaluación');
           return;
         }
         setMensaje(`Evaluación guardada (promedio: ${data.promedioEvaluacion.toFixed(1)} / 5)`);
-        
-        
         setValores(valoresIniciales());
       });
   };
