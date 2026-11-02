@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { API_URL } from '../api/config';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const formatoPesos = (n) => `$${Number(n).toLocaleString('es-CL')}`;
 const formatoFecha = (f) => new Date(f).toLocaleDateString('es-CL', { timeZone: 'UTC' });
@@ -49,6 +51,58 @@ function CancelacionEvento({ evento, onActualizado }) {
     if (!res.ok) return setError(leerError(data));
     setComprobante(data.comprobante);
     onActualizado(data.evento);
+  };
+
+  const generarPDF = () => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("COMPROBANTE DE CANCELACIÓN Y DEVOLUCIÓN", 105, 20, null, null, "center");
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Fecha de emisión: ${hoy()}`, 14, 35);
+    doc.text(`Comprobante #: ${comprobante.numeroComprobante}`, 130, 35);
+    
+    doc.line(14, 38, 196, 38);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Información del Cliente", 105, 50, null, null, "center");
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nombre del Cliente: ${comprobante.cliente}`, 14, 60);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Información del Evento", 105, 75, null, null, "center");
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nombre del Evento: ${comprobante.evento}`, 14, 85);
+    doc.text(`Ubicación del Evento: ${comprobante.lugar}`, 14, 95);
+    doc.text(`Fecha de pago de abono: ${formatoFecha(comprobante.fechaPago)}`, 14, 105);
+    doc.text(`Fecha solicitud cancelación: ${formatoFecha(comprobante.fechaCancelacion)}`, 14, 115);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Información de Pago y Devolución", 105, 130, null, null, "center");
+
+    autoTable(doc,{
+      startY: 135,
+      head: [['Descripción', 'Detalle', 'Total']],
+      body: [
+        ['Abono inicial pagado', '', formatoPesos(comprobante.montoAbono)],
+        ['Días hábiles transcurridos', comprobante.diasHabilesTranscurridos.toString(), ''],
+        ['Porcentaje de penalización/devolución', `${comprobante.porcentajeDevolucion}%`, ''],
+      ],
+      foot: [['', 'Monto final a devolver:', formatoPesos(comprobante.montoDevolucion)]],
+      theme: 'grid',
+      headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontStyle: 'bold' },
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+
+    doc.save(`Devolucion_${comprobante.numeroComprobante}.pdf`);
   };
 
   return (
@@ -137,7 +191,7 @@ function CancelacionEvento({ evento, onActualizado }) {
             <span>Monto a devolver</span>
             <span>{formatoPesos(comprobante.montoDevolucion)}</span>
           </div>
-          <button type="button" onClick={() => window.print()} className="btn btn-ghost" style={{ marginTop: 16 }}>
+          <button type="button" onClick={generarPDF} className="btn btn-ghost" style={{ marginTop: 16 }}>
             Imprimir comprobante
           </button>
         </div>

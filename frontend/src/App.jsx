@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Inicio from './components/Inicio';
 import ClienteList from './components/ClienteList';
 import LugarList from './components/LugarList';
 import EventoCatalogo from './components/EventoCatalogo';
@@ -12,12 +13,14 @@ const TABS = [
 ];
 
 function App() {
-  const [vista, setVista] = useState('eventos');
+  const [vista, setVista] = useState('inicio');
 
   return (
     <div>
       <nav className="navbar">
-        <h2>NES Producciones</h2>
+        <h2 style={{ cursor: 'pointer' }} onClick={() => setVista('inicio')}>
+          NES Producciones
+        </h2> 
         <div className="nav-links">
           {TABS.map((tab) => (
             <button key={tab.id} className={vista === tab.id ? 'active' : ''} onClick={() => setVista(tab.id)}>
@@ -28,6 +31,8 @@ function App() {
       </nav>
 
       <main className="container">
+        {/* Renderizado condicional de las vistas */}
+        {vista === 'inicio' && <Inicio setVista={setVista} />}
         {vista === 'eventos' && <EventoCatalogo />}
         {vista === 'clientes' && <ClienteList />}
         {vista === 'lugares' && <LugarList />}
