@@ -53,18 +53,31 @@ export const contarDiasHabiles = (fechaInicio, fechaFin) => {
   return contador;
 };
 
-// Aplica la regla de negocio: 100% hasta 5 días hábiles, 50% entre 6 y 15, 0% si supera 15.
-export const calcularDevolucion = (evento, fechaSolicitud) => {
+// Aplica la regla de negocio consultando la base de datos de políticas dinámicamente
+export const calcularDevolucion = async (evento, fechaSolicitud) => {
   const diasHabiles = contarDiasHabiles(evento.fechaPago, fechaSolicitud);
 
-  let porcentaje;
-  if (diasHabiles <= 5) porcentaje = 1;
-  else if (diasHabiles <= 15) porcentaje = 0.5;
-  else porcentaje = 0;
+  const politicas = await prisma.politicaDevolucion.findMany();
 
-  const montoDevolucion = Number((evento.montoAbono * porcentaje).toFixed(2));
+  let porcentajeAplicar = 0;
+  for (const tramo of politicas) {
+    const superaMinimo = diasHabiles >= tramo.diasDesde;
+    const bajoMaximo = tramo.diasHasta === null || diasHabiles <= tramo.diasHasta;
 
-  return { diasHabiles, porcentaje, montoDevolucion };
+    if (superaMinimo && bajoMaximo) {
+      porcentajeAplicar = tramo.porcentaje;
+      break;
+    }
+  }
+
+  const decimalPorcentaje = porcentajeAplicar / 100;
+  const montoDevolucion = Math.round(evento.montoAbono * decimalPorcentaje);
+
+  return {
+    diasHabiles,
+    porcentaje: decimalPorcentaje,
+    montoDevolucion
+  };
 };
 
 // Marca el evento como cancelado y libera la fecha (confirmado: false)

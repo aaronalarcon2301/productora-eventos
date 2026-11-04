@@ -183,3 +183,10 @@ model Incidente {
 
   @@map("incidentes")
 }
+
+model PoliticaDevolucion {
+  id          Int   @id @default(autoincrement())
+  diasDesde   Int   // Límite inferior del tramo (ej: 0, 6, 16)
+  diasHasta   Int?  // Límite superior del tramo (ej: 5, 15, null para infinito)
+  porcentaje  Int   // Porcentaje a devolver (ej: 100, 50, 0)
+}

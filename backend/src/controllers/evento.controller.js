@@ -62,7 +62,7 @@ export const cancelarEvento = async (req, res, next) => {
     }
 
     const fechaSolicitud = req.body.fechaSolicitud || new Date();
-    const { diasHabiles, porcentaje, montoDevolucion } = eventoService.calcularDevolucion(evento, fechaSolicitud);
+    const { diasHabiles, porcentaje, montoDevolucion } = await eventoService.calcularDevolucion(evento, fechaSolicitud);
 
     const eventoCancelado = await eventoService.cancelarEvento(evento.id, fechaSolicitud, montoDevolucion);
 
