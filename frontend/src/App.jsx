@@ -4,12 +4,14 @@ import ClienteList from './components/ClienteList';
 import LugarList from './components/LugarList';
 import EventoCatalogo from './components/EventoCatalogo';
 import EvaluacionTrabajador from './components/EvaluacionTrabajador';
+import ConfiguracionPoliticas from './components/ConfiguracionPoliticas';
 
 const TABS = [
   { id: 'eventos', label: 'Eventos' },
   { id: 'clientes', label: 'Clientes' },
   { id: 'lugares', label: 'Lugares' },
   { id: 'personal', label: 'Personal' },
+  { id: 'Configurar Politicas', label: 'Configurar Políticas' }
 ];
 
 function App() {
@@ -37,6 +39,7 @@ function App() {
         {vista === 'clientes' && <ClienteList />}
         {vista === 'lugares' && <LugarList />}
         {vista === 'personal' && <EvaluacionTrabajador />}
+        {vista === 'Configurar Politicas' && <ConfiguracionPoliticas />}
       </main>
     </div>
   );

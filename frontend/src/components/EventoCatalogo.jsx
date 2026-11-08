@@ -3,21 +3,28 @@ import { API_URL } from '../api/config';
 import CancelacionEvento from './CancelacionEvento';
 
 function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
-  const [formData, setFormData] = useState({ nombre: '', fecha: '', presupuesto: '', clienteId: '', lugarId: '' });
+  // Agregamos clienteNombre y lugarNombre para controlar lo que se escribe en el input de texto
+  const [formData, setFormData] = useState({ 
+    nombre: '', 
+    fecha: '', 
+    presupuesto: '', 
+    clienteId: '', 
+    lugarId: '',
+    clienteNombre: '',
+    lugarNombre: ''
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const res = await fetch(`${API_URL}/eventos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: formData.nombre,
+        nombre: formData.nombre,
           fecha: formData.fecha,
           presupuesto: Number(formData.presupuesto),
-          clienteId: Number(formData.clienteId),
-          lugarId: Number(formData.lugarId)
-        })
+          clienteId: formData.clienteId ? Number(formData.clienteId) : null,
+          clienteNombre: formData.clienteNombre,
+          lugarId: formData.lugarId ? Number(formData.lugarId) : null,
+          lugarNombre: formData.lugarNombre
       });
 
       if (!res.ok) throw new Error('Error al crear el evento');
@@ -25,7 +32,7 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
       const nuevoEvento = await res.json();
       onGuardar(nuevoEvento); 
     } catch (error) {
-      alert('Error al guardar el evento. Verifica la conexión con el servidor.');
+      alert('Error al guardar el evento. Verifica la conexión con el servidor o asegúrate de haber seleccionado un cliente/lugar válido de la lista.');
     }
   };
 
@@ -50,20 +57,52 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
             <input type="number" required min="1" value={formData.presupuesto} onChange={e => setFormData({...formData, presupuesto: e.target.value})} placeholder="Ej: 500000" />
           </div>
           
+          {/* Campo Cliente modificado con datalist */}
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Cliente</label>
-            <select required value={formData.clienteId} onChange={e => setFormData({...formData, clienteId: e.target.value})}>
-              <option value="">Seleccione un cliente...</option>
-              {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
+            <input 
+              required
+              type="text" 
+              list="lista-clientes" 
+              placeholder="Agregue o seleccione un cliente..."
+              value={formData.clienteNombre}
+              onChange={(e) => {
+                const nombreTipeado = e.target.value;
+                const clienteEncontrado = clientes.find(c => c.nombre === nombreTipeado);
+                setFormData({ 
+                  ...formData, 
+                  clienteNombre: nombreTipeado,
+                  clienteId: clienteEncontrado ? clienteEncontrado.id : '' 
+                });
+              }}
+            />
+            <datalist id="lista-clientes">
+              {clientes.map(c => <option key={c.id} value={c.nombre} />)}
+            </datalist>
           </div>
           
+          {/* Campo Lugar modificado con datalist */}
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Lugar</label>
-            <select required value={formData.lugarId} onChange={e => setFormData({...formData, lugarId: e.target.value})}>
-              <option value="">Seleccione un lugar...</option>
-              {lugares.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-            </select>
+            <input 
+              required
+              type="text" 
+              list="lista-lugares" 
+              placeholder="Agregue o seleccione un lugar..."
+              value={formData.lugarNombre}
+              onChange={(e) => {
+                const nombreTipeado = e.target.value;
+                const lugarEncontrado = lugares.find(l => l.nombre === nombreTipeado);
+                setFormData({ 
+                  ...formData, 
+                  lugarNombre: nombreTipeado,
+                  lugarId: lugarEncontrado ? lugarEncontrado.id : '' 
+                });
+              }}
+            />
+            <datalist id="lista-lugares">
+              {lugares.map(l => <option key={l.id} value={l.nombre} />)}
+            </datalist>
           </div>
           
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
@@ -76,6 +115,7 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
     </div>
   );
 }
+
 function EventoCatalogo() {
   const [eventos, setEventos] = useState([]);
   const [seleccionado, setSeleccionado] = useState(null);

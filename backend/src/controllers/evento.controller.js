@@ -21,8 +21,47 @@ export const getEventoById = async (req, res, next) => {
 
 export const createEvento = async (req, res, next) => {
   try {
-    const evento = await eventoService.createEvento(req.body);
-    res.status(201).json(evento);
+    const { nombre, fecha, presupuesto, clienteId, clienteNombre, lugarId, lugarNombre } = req.body;
+
+    let idClienteFinal = clienteId;
+    if (!idClienteFinal && clienteNombre) {
+      const nuevoCliente = await prisma.cliente.create({
+        data: {
+          nombre: clienteNombre,
+          email: 'pendiente@correo.com', 
+          telefono: 'Pendiente'
+        }
+      });
+      idClienteFinal = nuevoCliente.id;
+    }
+
+    let idLugarFinal = lugarId;
+    if (!idLugarFinal && lugarNombre) {
+      const nuevoLugar = await prisma.lugar.create({
+        data: {
+          nombre: lugarNombre,
+          ubicacion: 'Por definir', 
+          capacidad: 0              
+        }
+      });
+      idLugarFinal = nuevoLugar.id;
+    }
+
+      const nuevoEvento = await prisma.evento.create({
+      data: {
+        nombre,
+        fecha: new Date(fecha), 
+        presupuesto,
+        clienteId: idClienteFinal,
+        lugarId: idLugarFinal,
+      },
+      include: {
+        cliente: true,
+        lugar: true
+      }
+    });
+
+    res.status(201).json(nuevoEvento);
   } catch (error) {
     next(error);
   }

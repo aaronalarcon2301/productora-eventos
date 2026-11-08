@@ -1,5 +1,3 @@
-// Lista los clientes de la productora, mostrando cuántos eventos tiene cada uno.
-
 import { useState, useEffect } from 'react';
 import { API_URL } from '../api/config';
 

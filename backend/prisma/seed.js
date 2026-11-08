@@ -1,12 +1,3 @@
-/* 
-Script de seed para la bd - utiliza Faker para generar datos falsos pero realistas, incluyendo clientes, lugares, 
-eventos y reclamos de una productora de eventos.
-
-=> Faker es una librería que genera datos falsos con apariencia real (nombres, emails, direcciones, fechas, etc.). 
-Es perfecta para poblar tu base de datos en desarrollo y tener contenido visualmente atractivo para el frontend 
-sin tener que crear datos manualmente uno por uno.
- */
-
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 
@@ -14,10 +5,20 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Limpiando datos anteriores...');
+  await prisma.politicaDevolucion.deleteMany(); // <-- NUEVO: limpia las políticas
   await prisma.reclamo.deleteMany();
   await prisma.evento.deleteMany();
   await prisma.cliente.deleteMany();
   await prisma.lugar.deleteMany();
+
+  console.log('=> Creando políticas de devolución...'); // <-- NUEVO: inserta los tramos
+  await prisma.politicaDevolucion.createMany({
+    data: [
+      { diasDesde: 0, diasHasta: 5, porcentaje: 100 },
+      { diasDesde: 6, diasHasta: 15, porcentaje: 50 },
+      { diasDesde: 16, diasHasta: null, porcentaje: 0 }
+    ]
+  });
 
   console.log('=> Creando clientes...');
   const clientes = await Promise.all(
@@ -65,8 +66,6 @@ async function main() {
           numInvitados: faker.number.int({ min: 20, max: 300 }),
           presupuesto,
           confirmado,
-          // Si está confirmado, ya pagó el 50% de abono hace entre 1 y 30 días
-          // (así se pueden probar los tres tramos de devolución: 100%, 50% y 0%)
           fechaPago: confirmado ? faker.date.recent({ days: 30 }) : undefined,
           montoAbono: confirmado ? Math.round(presupuesto * 0.5) : undefined,
           clienteId: faker.helpers.arrayElement(clientes).id,
