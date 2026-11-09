@@ -3,7 +3,7 @@ import Inicio from './components/Inicio';
 import ClienteList from './components/ClienteList';
 import LugarList from './components/LugarList';
 import EventoCatalogo from './components/EventoCatalogo';
-import EvaluacionTrabajador from './components/EvaluacionTrabajador';
+import GestionPersonal from './components/GestionPersonal';
 import ConfiguracionPoliticas from './components/ConfiguracionPoliticas';
 
 const TABS = [
@@ -38,7 +38,7 @@ function App() {
         {vista === 'eventos' && <EventoCatalogo />}
         {vista === 'clientes' && <ClienteList />}
         {vista === 'lugares' && <LugarList />}
-        {vista === 'personal' && <EvaluacionTrabajador />}
+        {vista === 'personal' && <GestionPersonal />}
         {vista === 'Configurar Politicas' && <ConfiguracionPoliticas />}
       </main>
     </div>

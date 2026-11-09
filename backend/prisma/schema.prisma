@@ -62,6 +62,7 @@ model Evento {
   reclamos         Reclamo[]
   evaluaciones     Evaluacion[]
   incidentes       Incidente[]
+  asignaciones     AsignacionTrabajador[]
 
   @@map("eventos")
 }
@@ -99,13 +100,33 @@ model Trabajador {
   id              Int           @id @default(autoincrement())
   nombre          String        @db.VarChar(100)
   rolPrincipal    RolTrabajador
-  bloqueado       Boolean       @default(false)
+
+  // --- Datos personales ---
+  rut             String?       @unique @db.VarChar(12)  // normalizado: 12345678-5
+  email           String?       @db.VarChar(120)
+  telefono        String?       @db.VarChar(20)
+  comuna          String?       @db.VarChar(80)
+
+  // --- Información laboral (el cargo principal es rolPrincipal) ---
+  aniosExperiencia    Int?
+  disponibilidadDias  DiaSemana[]       @default([])
+  disponibilidadTurno TurnoDisponible?
+
+  // --- Información administrativa ---
+  tallaUniforme   String?       @db.VarChar(10)
+  banco           String?       @db.VarChar(60)
+  tipoCuenta      TipoCuenta?
+  numeroCuenta    String?       @db.VarChar(30)
+
+  activo          Boolean       @default(true)   // false = baja lógica (conserva historial)
+  bloqueado       Boolean       @default(false)  // true = falta grave registrada
   promedioGeneral Float?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   evaluaciones Evaluacion[]
   incidentes   Incidente[]
+  asignaciones AsignacionTrabajador[]
 
   @@map("trabajadores")
 }
@@ -160,8 +181,10 @@ model Evaluacion {
 
   promedioEvaluacion Float 
   adminId            Int?
+  modificadoPorId    Int?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([trabajadorId, eventoId]) 
   @@map("evaluaciones")
@@ -189,4 +212,70 @@ model PoliticaDevolucion {
   diasDesde   Int   // Límite inferior del tramo (ej: 0, 6, 16)
   diasHasta   Int?  // Límite superior del tramo (ej: 5, 15, null para infinito)
   porcentaje  Int   // Porcentaje a devolver (ej: 100, 50, 0)
+}
+
+// Qué trabajador participa en qué evento y con qué rol.
+// Es la base para validar quién puede ser evaluado y evitar cruces de agenda.
+model AsignacionTrabajador {
+  id Int @id @default(autoincrement())
+
+  trabajadorId Int
+  trabajador   Trabajador @relation(fields: [trabajadorId], references: [id], onDelete: Restrict)
+
+  eventoId Int
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  rol       RolTrabajador
+  createdAt DateTime      @default(now())
+
+  @@unique([trabajadorId, eventoId])
+  @@map("asignaciones_trabajador")
+}
+
+enum AccionEvaluacion {
+  EDITADA
+  ELIMINADA
+}
+
+// Bitácora de cambios sobre evaluaciones. Sin FK a propósito: el registro
+// debe sobrevivir aunque la evaluación original se elimine.
+model AuditoriaEvaluacion {
+  id Int @id @default(autoincrement())
+
+  evaluacionId Int
+  trabajadorId Int
+  eventoId     Int
+
+  accion          AccionEvaluacion
+  motivo          String?          @db.Text
+  adminId         Int?
+  datosAnteriores Json             // copia de la evaluación antes del cambio
+
+  createdAt DateTime @default(now())
+
+  @@index([trabajadorId])
+  @@map("auditoria_evaluaciones")
+}
+
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+enum TurnoDisponible {
+  DIURNO
+  NOCTURNO
+  AMBOS
+}
+
+enum TipoCuenta {
+  CORRIENTE
+  VISTA
+  CUENTA_RUT
+  AHORRO
 }

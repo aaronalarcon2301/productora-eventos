@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const ROLES_TECNICOS = ["TECNICO_SONIDO", "TECNICO_ILUMINACION", "MONTAJISTA"];
 
-const ROLES = [
+export const ROLES = [
   "TECNICO_SONIDO",
   "TECNICO_ILUMINACION",
   "MONTAJISTA",
@@ -55,8 +55,11 @@ for (const [campo, campoComentario] of SUBINDICADORES_TECNICOS) {
   shape[campoComentario] = comentarioOpcional;
 }
 
-export const crearEvaluacionSchema = z.object(shape).superRefine((data, ctx) => {
-  
+const evaluacionBase = z.object(shape);
+
+// Reglas de negocio compartidas por crear y editar una evaluación.
+function validarReglasEvaluacion(data, ctx) {
+  // Notas 1, 2 o 5 exigen un comentario que las justifique.
   for (const [campo, campoComentario] of SUBINDICADORES_BASE) {
     if ([1, 2, 5].includes(data[campo]) && !data[campoComentario]) {
       ctx.addIssue({
@@ -67,7 +70,7 @@ export const crearEvaluacionSchema = z.object(shape).superRefine((data, ctx) => 
     }
   }
 
-
+  // El cuarto criterio (manejo de equipos) es obligatorio solo para roles técnicos.
   const tecnico = esRolTecnico(data.rolEvento);
   for (const [campo, campoComentario] of SUBINDICADORES_TECNICOS) {
     if (tecnico) {
@@ -92,4 +95,18 @@ export const crearEvaluacionSchema = z.object(shape).superRefine((data, ctx) => 
       });
     }
   }
+}
+
+// POST /api/evaluaciones
+export const crearEvaluacionSchema = evaluacionBase.superRefine(validarReglasEvaluacion);
+
+// PUT /api/evaluaciones/:id  (mismo cuerpo que crear + motivo opcional del cambio)
+export const editarEvaluacionSchema = evaluacionBase
+  .extend({ motivo: z.string().trim().min(1).optional() })
+  .superRefine(validarReglasEvaluacion);
+
+// DELETE /api/evaluaciones/:id  (el motivo es obligatorio)
+export const eliminarEvaluacionSchema = z.object({
+  motivo: z.string().trim().min(1, "Debes indicar el motivo de la eliminación."),
+  adminId: z.number().int().positive().optional(),
 });

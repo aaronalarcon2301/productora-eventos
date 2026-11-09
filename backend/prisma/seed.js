@@ -1,6 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 
+
+const ROLES = [
+  'ADMINISTRADOR', 'COORDINADOR', 'TECNICO_SONIDO', 'TECNICO_ILUMINACION', 'MONTAJISTA'];
+
+
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -91,6 +97,7 @@ async function main() {
   }
 
   console.log('--- Seed completado :V ---');
+  
 }
 
 main()

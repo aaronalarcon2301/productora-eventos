@@ -1,4 +1,9 @@
 export const errorHandler = (err, req, res, next) => {
+  // Errores de negocio lanzados con httpError(status, mensaje)
+  if (err.status) {
+    return res.status(err.status).json({ error: err.message });
+  }
+
   console.error(err);
 
   if (err.code === 'P2002') {

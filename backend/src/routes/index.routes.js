@@ -8,6 +8,7 @@ import cotizacionRoutes from './cotizacion.routes.js';
 import evaluacionesRoutes from './evaluaciones.routes.js';
 import incidentesRoutes from './incidentes.routes.js';
 import trabajadoresRoutes from './trabajadores.routes.js';
+import asignacionesRoutes from './asignaciones.routes.js';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/cotizaciones', cotizacionRoutes);
 router.use('/evaluaciones', evaluacionesRoutes);
 router.use('/incidentes', incidentesRoutes);
 router.use('/trabajadores', trabajadoresRoutes);
+router.use('/asignaciones', asignacionesRoutes);
 
 export default router;
