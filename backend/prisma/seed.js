@@ -6,6 +6,7 @@ import { calcularDv } from '../src/utils/rut.js';
 import { asignarTrabajador } from '../src/services/asignacion.service.js';
 import { crearEvaluacion, actualizarEvaluacion } from '../src/services/evaluacion.service.js';
 import { crearIncidente } from '../src/services/incidente.service.js';
+import { registrarEntrega, registrarDevolucion, crearReserva } from '../src/services/reservaEquipo.service.js';
 import {
   crearEvaluacionSchema,
   editarEvaluacionSchema,
@@ -199,7 +200,119 @@ async function seedPersonal(clienteId, lugarId) {
     const promedio = t.promedioGeneral != null ? t.promedioGeneral.toFixed(2) : 'sin evaluaciones';
     console.log(`   ${t.nombre.padEnd(28)} ${t.rolPrincipal.padEnd(20)} ${estado.padEnd(10)} promedio: ${promedio}`);
   }
+
+  return { trabajadores, eventosDemo };
 }
+
+// =====================================================================
+// DATOS DE DEMOSTRACIÓN DEL MÓDULO DE EQUIPOS
+// (inventario, reservas por evento, entregas y devoluciones con daños)
+//
+// Usa los trabajadores y eventos de demo de Personal. Los equipos de demo se reconocen por su nombre:
+// al repetir el seed se borran y se vuelven a crear (sus reservas ya se borraron junto con los eventos).
+// =====================================================================
+const EQUIPOS_DEMO = [
+  { clave: 'parlante', nombre: 'Parlante activo 15"', categoria: 'SONIDO', total: 12, precio: 25000, descripcion: 'Con trípode y cable XLR' },
+  { clave: 'consola', nombre: 'Consola mezcladora 16 canales', categoria: 'SONIDO', total: 2, precio: 60000 },
+  { clave: 'cabezal', nombre: 'Cabezal móvil LED', categoria: 'ILUMINACION', total: 16, precio: 18000 },
+  { clave: 'pantalla', nombre: 'Pantalla LED 3×2 m', categoria: 'AUDIOVISUAL', total: 2, mantencion: 1, precio: 150000, descripcion: 'Una unidad en reparación' },
+  { clave: 'mesa', nombre: 'Mesa redonda 10 personas', categoria: 'MOBILIARIO', total: 40, precio: 6000 },
+  { clave: 'silla', nombre: 'Silla Tiffany blanca', categoria: 'MOBILIARIO', total: 300, precio: 1500 },
+  { clave: 'carpa', nombre: 'Carpa 6×6 m', categoria: 'ESTRUCTURA', total: 5, precio: 80000 },
+];
+
+// Eventos que ya ocurrieron: se reservan directo en la base (el sistema no deja reservar eventos finalizados),
+// y luego se registran la entrega y la devolución con los servicios reales, que ajustan el stock.
+const USO_PASADO_DEMO = [
+  {
+    evento: 'boda',
+    items: [
+      { equipo: 'parlante', cantidad: 8, responsable: 'matias', devolucion: { cantidadDanada: 1, observacion: '1 parlante con el cono roto.' } },
+      { equipo: 'consola', cantidad: 1, responsable: 'matias', devolucion: {} },
+      { equipo: 'mesa', cantidad: 18, devolucion: {} },
+      { equipo: 'silla', cantidad: 180, devolucion: { cantidadFaltante: 4, observacion: 'Faltaron 4 sillas al contar.' } },
+    ],
+  },
+  {
+    evento: 'gala',
+    items: [
+      { equipo: 'parlante', cantidad: 6, responsable: 'matias', devolucion: {} },
+      { equipo: 'cabezal', cantidad: 12, responsable: 'felipe', devolucion: {} },
+      { equipo: 'carpa', cantidad: 2, devolucion: {} },
+    ],
+  },
+  {
+    evento: 'corporativo',
+    items: [
+      { equipo: 'pantalla', cantidad: 1, devolucion: {} },
+      { equipo: 'consola', cantidad: 1, devolucion: null }, // entregada y todavía sin devolver
+    ],
+  },
+];
+
+// Evento futuro: se reserva con el servicio real (valida stock, fechas y responsable).
+const USO_FUTURO_DEMO = [
+  { evento: 'proximo', equipo: 'parlante', cantidad: 10, responsable: 'matias' },
+  { evento: 'proximo', equipo: 'cabezal', cantidad: 8, responsable: 'felipe' },
+  { evento: 'proximo', equipo: 'mesa', cantidad: 10 },
+  { evento: 'proximo', equipo: 'carpa', cantidad: 3 },
+];
+
+async function seedEquipos({ trabajadores, eventosDemo }) {
+  console.log('=> [Equipos] Limpiando equipos de demo anteriores...');
+  await prisma.equipo.deleteMany({ where: { nombre: { in: EQUIPOS_DEMO.map((e) => e.nombre) } } });
+
+  console.log('=> [Equipos] Creando inventario...');
+  const equipos = {};
+  for (const e of EQUIPOS_DEMO) {
+    equipos[e.clave] = await prisma.equipo.create({
+      data: {
+        nombre: e.nombre,
+        categoria: e.categoria,
+        descripcion: e.descripcion ?? null,
+        cantidadTotal: e.total,
+        cantidadMantencion: e.mantencion ?? 0,
+        precioArriendoDia: e.precio,
+      },
+    });
+  }
+
+  console.log('=> [Equipos] Registrando el uso de los eventos que ya ocurrieron...');
+  let totalReservas = 0;
+  for (const { evento, items } of USO_PASADO_DEMO) {
+    for (const item of items) {
+      const reserva = await prisma.reservaEquipo.create({
+        data: {
+          equipoId: equipos[item.equipo].id,
+          eventoId: eventosDemo[evento].id,
+          cantidad: item.cantidad,
+          responsableId: item.responsable ? trabajadores[item.responsable].id : null,
+        },
+      });
+      await registrarEntrega(reserva.id);
+      if (item.devolucion) await registrarDevolucion(reserva.id, item.devolucion);
+      totalReservas++;
+    }
+  }
+
+  console.log('=> [Equipos] Reservando equipos para el próximo evento...');
+  for (const r of USO_FUTURO_DEMO) {
+    await crearReserva({
+      equipoId: equipos[r.equipo].id,
+      eventoId: eventosDemo[r.evento].id,
+      cantidad: r.cantidad,
+      responsableId: r.responsable ? trabajadores[r.responsable].id : null,
+    });
+    totalReservas++;
+  }
+
+  const resultado = await prisma.equipo.findMany({ where: { nombre: { in: EQUIPOS_DEMO.map((e) => e.nombre) } }, orderBy: { nombre: 'asc' } });
+  console.log(`\n=> [Equipos] Equipos: ${resultado.length} | Reservas: ${totalReservas}`);
+  for (const e of resultado) {
+    console.log(`   ${e.nombre.padEnd(32)} total: ${String(e.cantidadTotal).padStart(3)}  en mantención: ${e.cantidadMantencion}`);
+  }
+}
+// =====================================================================
 // =====================================================================
 
 async function main() {
@@ -290,7 +403,10 @@ async function main() {
   }
 
   console.log('=> Creando datos de demostración de Personal...');
-  await seedPersonal(clientes[0].id, lugares[0].id);
+  const demoPersonal = await seedPersonal(clientes[0].id, lugares[0].id);
+
+  console.log('=> Creando datos de demostración de Equipos...');
+  await seedEquipos(demoPersonal);
 
   console.log('--- Seed completado :V ---');
   

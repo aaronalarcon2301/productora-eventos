@@ -63,6 +63,7 @@ model Evento {
   evaluaciones     Evaluacion[]
   incidentes       Incidente[]
   asignaciones     AsignacionTrabajador[]
+  reservasEquipo   ReservaEquipo[]
 
   @@map("eventos")
 }
@@ -127,6 +128,7 @@ model Trabajador {
   evaluaciones Evaluacion[]
   incidentes   Incidente[]
   asignaciones AsignacionTrabajador[]
+  reservasEquipo ReservaEquipo[]
 
   @@map("trabajadores")
 }
@@ -278,4 +280,78 @@ enum TipoCuenta {
   VISTA
   CUENTA_RUT
   AHORRO
+}
+
+// =====================================================================
+// GESTIÓN DE EQUIPOS
+// =====================================================================
+
+enum CategoriaEquipo {
+  SONIDO
+  ILUMINACION
+  AUDIOVISUAL
+  MOBILIARIO
+  ESTRUCTURA
+  OTRO
+}
+
+enum EstadoReserva {
+  RESERVADO
+  ENTREGADO
+  DEVUELTO
+}
+
+// Catálogo de equipos. El stock se lleva por cantidad (ej. "12 parlantes").
+// cantidadMantencion = unidades fuera de servicio (dañadas): no cuentan como disponibles.
+model Equipo {
+  id Int @id @default(autoincrement())
+
+  nombre      String          @unique @db.VarChar(100)
+  categoria   CategoriaEquipo
+  descripcion String?         @db.VarChar(255)
+
+  cantidadTotal      Int
+  cantidadMantencion Int @default(0)
+  precioArriendoDia  Int?
+
+  activo Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservas ReservaEquipo[]
+
+  @@map("equipos")
+}
+
+// Equipo reservado para un evento. Un equipo aparece una sola vez por evento.
+model ReservaEquipo {
+  id Int @id @default(autoincrement())
+
+  equipoId Int
+  equipo   Equipo @relation(fields: [equipoId], references: [id], onDelete: Restrict)
+
+  eventoId Int
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  // Trabajador a cargo del equipo (debe estar asignado al evento). Opcional.
+  responsableId Int?
+  responsable   Trabajador? @relation(fields: [responsableId], references: [id], onDelete: SetNull)
+
+  cantidad Int
+  estado   EstadoReserva @default(RESERVADO)
+
+  // Se completan al registrar la devolución.
+  cantidadDanada   Int     @default(0)
+  cantidadFaltante Int     @default(0)
+  observacion      String? @db.VarChar(255)
+
+  entregadaAt DateTime?
+  devueltaAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([equipoId, eventoId])
+  @@map("reservas_equipo")
 }
