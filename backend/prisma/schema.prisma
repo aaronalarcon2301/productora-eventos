@@ -50,6 +50,11 @@ model Evento {
   fechaCancelacion DateTime?
   montoDevolucion  Float?
 
+  // --- Finalización ---
+  // Se completa al marcar el evento como finalizado desde la app. Si es null, el evento
+  // se considera finalizado igualmente cuando termina el día de su fecha.
+  finalizadoAt     DateTime?
+
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

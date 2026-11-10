@@ -1,7 +1,8 @@
 // El modelo Evento guarda una sola fecha (sin hora de término).
-// Regla del sistema: un evento se considera FINALIZADO cuando terminó el día
-// del evento (medianoche UTC del día siguiente). Si más adelante se agregan
-// fechaInicio / fechaFin al evento, basta con cambiar `eventoFinalizado` aquí.
+// Regla del sistema: un evento se considera FINALIZADO cuando
+//   - se marcó como finalizado desde la app (campo `finalizadoAt`), o
+//   - terminó el día del evento (medianoche UTC del día siguiente).
+// Si más adelante se agregan fechaInicio / fechaFin al evento, basta con cambiar `eventoFinalizado` aquí.
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -15,5 +16,6 @@ export function finDelDia(fecha) {
 }
 
 export function eventoFinalizado(evento, ahora = new Date()) {
+  if (evento.finalizadoAt) return true;
   return finDelDia(evento.fecha) <= ahora;
 }

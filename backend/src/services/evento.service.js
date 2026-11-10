@@ -1,21 +1,29 @@
 import prisma from '../config/prisma.js';
+import { eventoFinalizado } from '../utils/fechas.js';
+
+// Agrega `finalizado` (marcado a mano o ya pasó su fecha) para que el frontend lo muestre.
+const conEstado = (evento) => (evento ? { ...evento, finalizado: eventoFinalizado(evento) } : evento);
 
 export const getAllEventos = (filtros = {}) => {
   const where = {};
   if (filtros.clienteId) where.clienteId = Number(filtros.clienteId);
   if (filtros.lugarId) where.lugarId = Number(filtros.lugarId);
 
-  return prisma.evento.findMany({
-    where,
-    include: { cliente: true, lugar: true },
-  });
+  return prisma.evento
+    .findMany({
+      where,
+      include: { cliente: true, lugar: true },
+    })
+    .then((eventos) => eventos.map(conEstado));
 };
 
 export const getEventoById = (id) => {
-  return prisma.evento.findUnique({
-    where: { id },
-    include: { cliente: true, lugar: true },
-  });
+  return prisma.evento
+    .findUnique({
+      where: { id },
+      include: { cliente: true, lugar: true },
+    })
+    .then(conEstado);
 };
 
 export const createEvento = (data) => {

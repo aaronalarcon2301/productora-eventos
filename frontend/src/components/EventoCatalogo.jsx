@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API_URL } from '../api/config';
 import CancelacionEvento from './CancelacionEvento';
+import FinalizacionEvento from './FinalizacionEvento';
 
 function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
   // Agregamos clienteNombre y lugarNombre para controlar lo que se escribe en el input de texto
@@ -186,8 +187,8 @@ function EventoCatalogo() {
               </strong>
               
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <span className={`status ${ev.cancelado ? 'cancelled' : (ev.confirmado ? 'confirmed' : 'pending')}`}>
-                  {ev.cancelado ? 'CANCELADO' : (ev.confirmado ? 'CONFIRMADO' : 'PENDIENTE')}
+                <span className={`status ${ev.cancelado ? 'cancelled' : (ev.finalizado ? 'finalizado' : (ev.confirmado ? 'confirmed' : 'pending'))}`}>
+                  {ev.cancelado ? 'CANCELADO' : (ev.finalizado ? 'FINALIZADO' : (ev.confirmado ? 'CONFIRMADO' : 'PENDIENTE'))}
                 </span>
 
                 <button
@@ -212,6 +213,14 @@ function EventoCatalogo() {
           <CancelacionEvento 
             evento={seleccionado} 
             onActualizado={(evActualizado) => setSeleccionado({...seleccionado, ...evActualizado})} 
+          />
+
+          <FinalizacionEvento
+            evento={seleccionado}
+            onActualizado={(evActualizado) => {
+              setSeleccionado(evActualizado);
+              setEventos(eventos.map((ev) => (ev.id === evActualizado.id ? { ...ev, ...evActualizado } : ev)));
+            }}
           />
         </section>
       )}

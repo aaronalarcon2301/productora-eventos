@@ -1,0 +1,9 @@
+/* Panel de finalización de un evento (detalle del evento) */
+.finalizacion { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+.finalizacion h3 { margin: 0 0 10px; font-size: 1rem; }
+.finalizacion .texto { color: var(--ink-dim); font-size: 14px; line-height: 1.5; margin: 0 0 12px; }
+.finalizacion .fin-alert { border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; line-height: 1.5; border: 1px solid transparent; }
+.finalizacion .fin-alert.error { background: rgba(225, 99, 107, 0.1); border-color: rgba(225, 99, 107, 0.3); color: var(--cancel); }
+.finalizacion .fin-alert.ok { background: rgba(63, 191, 160, 0.1); border-color: rgba(63, 191, 160, 0.3); color: var(--confirm); }
+.finalizacion .fin-alert.info { background: rgba(242, 169, 59, 0.1); border-color: rgba(242, 169, 59, 0.3); color: var(--cue); }
+.status.finalizado { background: rgba(92, 196, 238, 0.15); color: #5cc4ee; border: 1px solid rgba(92, 196, 238, 0.3); }

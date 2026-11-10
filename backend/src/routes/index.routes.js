@@ -10,6 +10,7 @@ import incidentesRoutes from './incidentes.routes.js';
 import trabajadoresRoutes from './trabajadores.routes.js';
 import asignacionesRoutes from './asignaciones.routes.js';
 import equiposRoutes from './equipos.routes.js';
+import eventoFinalizacionRoutes from './eventoFinalizacion.routes.js';
 import reservasEquipoRoutes from './reservasEquipo.routes.js';
 
 const router = Router();
@@ -17,6 +18,7 @@ const router = Router();
 router.use('/clientes', clienteRoutes);
 router.use('/lugares', lugarRoutes);
 router.use('/eventos', eventoRoutes);
+router.use('/eventos', eventoFinalizacionRoutes);
 router.use('/cotizaciones', cotizacionRoutes);
 router.use('/evaluaciones', evaluacionesRoutes);
 router.use('/incidentes', incidentesRoutes);
