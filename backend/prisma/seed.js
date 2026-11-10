@@ -1,5 +1,18 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import prismaApp from '../src/config/prisma.js'; // cliente que usan los servicios de la app
+import { calcularDv } from '../src/utils/rut.js';
+import { asignarTrabajador } from '../src/services/asignacion.service.js';
+import { crearEvaluacion, actualizarEvaluacion } from '../src/services/evaluacion.service.js';
+import { crearIncidente } from '../src/services/incidente.service.js';
+import {
+  crearEvaluacionSchema,
+  editarEvaluacionSchema,
+  SUBINDICADORES_BASE,
+  SUBINDICADORES_TECNICOS,
+  esRolTecnico,
+} from '../src/schemas/evaluacion.schema.js';
 
 
 const ROLES = [
@@ -8,6 +21,186 @@ const ROLES = [
 
 
 const prisma = new PrismaClient();
+
+// =====================================================================
+// DATOS DE DEMOSTRACIÓN DEL MÓDULO DE PERSONAL
+// (trabajadores, asignaciones, evaluaciones, incidentes y bitácora)
+//
+// Se crean al final de este seed, reutilizando los clientes y lugares que acaba de crear arriba.
+// Son repetibles: antes de crearlos se borran SOLO los trabajadores de demo de Personal
+// (los trabajadores con correo @demo.nes.cl; los eventos ya los borra el seed de arriba).
+// Usan los mismos servicios que la aplicación, así que cumplen todas las reglas de negocio.
+// =====================================================================
+const DOMINIO_DEMO = '@demo.nes.cl';
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+const conDv = (cuerpo) => `${cuerpo}-${calcularDv(String(cuerpo))}`;
+
+// perfil: excelente | regular | bajo (define qué notas recibe en las evaluaciones)
+const TRABAJADORES_DEMO = [
+  { clave: 'camila', nombre: 'Camila Rojas Pizarro', rut: 98000001, rol: 'GARZON', comuna: 'Concepción', anios: 4, dias: ['VIERNES', 'SABADO', 'DOMINGO'], turno: 'AMBOS', talla: 'S', banco: 'BancoEstado', tipoCuenta: 'CUENTA_RUT', cuenta: '98000001', telefono: '+56981234501', perfil: 'excelente' },
+  { clave: 'matias', nombre: 'Matías Fuentes Lagos', rut: 98000002, rol: 'TECNICO_SONIDO', comuna: 'Talcahuano', anios: 8, dias: ['JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'], turno: 'NOCTURNO', talla: 'L', banco: 'Banco de Chile', tipoCuenta: 'CORRIENTE', cuenta: '123456789', telefono: '+56981234502', perfil: 'excelente' },
+  { clave: 'javiera', nombre: 'Javiera Soto Cárdenas', rut: 98000003, rol: 'ANFITRION', comuna: 'San Pedro de la Paz', anios: 2, dias: ['SABADO', 'DOMINGO'], turno: 'DIURNO', talla: 'M', banco: 'BCI', tipoCuenta: 'VISTA', cuenta: '55667788', telefono: '+56981234503', perfil: 'regular' },
+  { clave: 'felipe', nombre: 'Felipe Araya Mella', rut: 98000004, rol: 'TECNICO_ILUMINACION', comuna: 'Concepción', anios: 6, dias: ['VIERNES', 'SABADO'], turno: 'NOCTURNO', talla: 'XL', banco: 'Banco Santander', tipoCuenta: 'CORRIENTE', cuenta: '778899001', telefono: '+56981234504', perfil: 'regular' },
+  { clave: 'diego', nombre: 'Diego Pardo Salazar', rut: 98000005, rol: 'MONTAJISTA', comuna: 'Chiguayante', anios: 1, dias: ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES'], turno: 'DIURNO', talla: 'L', banco: null, tipoCuenta: null, cuenta: null, telefono: '+56981234505', perfil: 'bajo' },
+  { clave: 'valentina', nombre: 'Valentina Mora Henríquez', rut: 98000006, rol: 'ANIMADOR', comuna: 'Hualpén', anios: 5, dias: ['VIERNES', 'SABADO', 'DOMINGO'], turno: 'AMBOS', talla: 'M', banco: 'Scotiabank', tipoCuenta: 'AHORRO', cuenta: '40506070', telefono: '+56981234506', perfil: 'excelente' },
+  { clave: 'sebastian', nombre: 'Sebastián Vera Contreras', rut: 98000007, rol: 'SEGURIDAD', comuna: 'Coronel', anios: 3, dias: ['SABADO', 'DOMINGO'], turno: 'NOCTURNO', talla: 'XL', banco: 'BancoEstado', tipoCuenta: 'VISTA', cuenta: '66778899', telefono: '+56981234507', perfil: 'regular' },
+  { clave: 'constanza', nombre: 'Constanza Díaz Ortiz', rut: 98000008, rol: 'ASEO_LOGISTICA', comuna: 'Concepción', anios: 2, dias: ['LUNES', 'MARTES', 'MIERCOLES'], turno: 'DIURNO', talla: 'S', banco: 'Banco Falabella', tipoCuenta: 'VISTA', cuenta: '30405060', telefono: '+56981234508', perfil: 'regular' },
+  // Sin historial: sirve para probar que un trabajador sin eventos se puede eliminar de verdad.
+  { clave: 'nicolas', nombre: 'Nicolás Peña Valdés', rut: 98000009, rol: 'GARZON', comuna: 'Lota', anios: 0, dias: ['SABADO'], turno: 'DIURNO', talla: 'M', banco: null, tipoCuenta: null, cuenta: null, telefono: '+56981234509', perfil: 'regular' },
+];
+
+// dias: desfase respecto a hoy (negativo = ya ocurrió, positivo = aún no ocurre)
+const EVENTOS_DEMO = [
+  { clave: 'boda', nombre: 'Matrimonio Alvarado-Reyes', dias: -30, invitados: 180, presupuesto: 4200000 },
+  { clave: 'gala', nombre: 'Gala de aniversario Constructora Sur', dias: -20, invitados: 250, presupuesto: 6800000 },
+  { clave: 'corporativo', nombre: 'Lanzamiento de producto Vitalcorp', dias: -10, invitados: 120, presupuesto: 3100000 },
+  { clave: 'proximo', nombre: 'Cumpleaños 40 años Rodrigo', dias: 15, invitados: 90, presupuesto: 1900000 },
+];
+
+// Quién trabaja en cada evento (cada uno con su cargo principal). El evento 'proximo' aún no ocurre.
+const PLAN_DEMO = [
+  { evento: 'boda', equipo: ['camila', 'matias', 'javiera', 'diego', 'sebastian'] },
+  { evento: 'gala', equipo: ['camila', 'matias', 'felipe', 'valentina', 'constanza'] },
+  { evento: 'corporativo', equipo: ['camila', 'javiera', 'diego', 'valentina', 'sebastian'] },
+  { evento: 'proximo', equipo: ['camila', 'matias', 'felipe'] },
+];
+
+const NOTA_BASE = { excelente: 4, regular: 3, bajo: 2 };
+const COMENTARIOS_NOTA = {
+  5: 'Desempeño sobresaliente, superó lo esperado.',
+  2: 'Estuvo por debajo de lo esperado en este punto.',
+  1: 'Incumplió lo acordado en este punto.',
+};
+
+function mediodiaUTC(desfaseDias) {
+  const d = new Date(Date.now() + desfaseDias * DIA_MS);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12));
+}
+
+// Arma una evaluación válida (con comentarios en las notas 1, 2 y 5) y la valida con el mismo schema de la API.
+function armarEvaluacion(trabajadorId, eventoId, rol, perfil, variante) {
+  const datos = { trabajadorId, eventoId, rolEvento: rol };
+  const criterios = esRolTecnico(rol) ? [...SUBINDICADORES_BASE, ...SUBINDICADORES_TECNICOS] : SUBINDICADORES_BASE;
+
+  criterios.forEach(([campo, campoComentario], i) => {
+    let nota = NOTA_BASE[perfil] + ((i + variante) % 3 === 0 ? 1 : 0);
+    if (perfil === 'bajo' && i === 0) nota = 1; // llegó muy tarde
+    datos[campo] = nota;
+    if (COMENTARIOS_NOTA[nota]) datos[campoComentario] = COMENTARIOS_NOTA[nota];
+  });
+  return crearEvaluacionSchema.parse(datos);
+}
+
+async function limpiarDatosDemoPersonal() {
+  const trabajadores = await prisma.trabajador.findMany({ where: { email: { endsWith: DOMINIO_DEMO } }, select: { id: true } });
+  const idsTrabajadores = trabajadores.map((t) => t.id);
+
+  // Orden importante: primero lo que depende de trabajadores y eventos.
+  await prisma.auditoriaEvaluacion.deleteMany({ where: { trabajadorId: { in: idsTrabajadores } } });
+  await prisma.incidente.deleteMany({ where: { trabajadorId: { in: idsTrabajadores } } });
+  await prisma.evaluacion.deleteMany({ where: { trabajadorId: { in: idsTrabajadores } } });
+  await prisma.asignacionTrabajador.deleteMany({ where: { trabajadorId: { in: idsTrabajadores } } });
+  await prisma.trabajador.deleteMany({ where: { id: { in: idsTrabajadores } } });
+}
+
+async function seedPersonal(clienteId, lugarId) {
+  console.log('=> [Personal] Limpiando datos de demo anteriores...');
+  await limpiarDatosDemoPersonal();
+
+  console.log('=> [Personal] Creando trabajadores...');
+  const trabajadores = {};
+  for (const t of TRABAJADORES_DEMO) {
+    trabajadores[t.clave] = await prisma.trabajador.create({
+      data: {
+        nombre: t.nombre,
+        rut: conDv(t.rut),
+        email: `${t.clave}${DOMINIO_DEMO}`,
+        telefono: t.telefono,
+        comuna: t.comuna,
+        rolPrincipal: t.rol,
+        aniosExperiencia: t.anios,
+        disponibilidadDias: t.dias,
+        disponibilidadTurno: t.turno,
+        tallaUniforme: t.talla,
+        banco: t.banco,
+        tipoCuenta: t.tipoCuenta,
+        numeroCuenta: t.cuenta,
+      },
+    });
+  }
+
+  console.log('=> [Personal] Creando eventos de demo...');
+  const eventosDemo = {};
+  for (const e of EVENTOS_DEMO) {
+    eventosDemo[e.clave] = await prisma.evento.create({
+      data: {
+        nombre: e.nombre,
+        fecha: mediodiaUTC(e.dias),
+        numInvitados: e.invitados,
+        presupuesto: e.presupuesto,
+        confirmado: true,
+        clienteId,
+        lugarId,
+      },
+    });
+  }
+
+  console.log('=> [Personal] Asignando personal y evaluando los eventos que ya ocurrieron...');
+  const evaluaciones = {};
+  let totalAsignaciones = 0;
+  let totalEvaluaciones = 0;
+
+  for (const [indice, { evento, equipo }] of PLAN_DEMO.entries()) {
+    const yaOcurrio = EVENTOS_DEMO.find((e) => e.clave === evento).dias < 0;
+
+    for (const clave of equipo) {
+      const trabajador = trabajadores[clave];
+      const perfil = TRABAJADORES_DEMO.find((t) => t.clave === clave).perfil;
+
+      await asignarTrabajador({ trabajadorId: trabajador.id, eventoId: eventosDemo[evento].id });
+      totalAsignaciones++;
+
+      if (yaOcurrio) {
+        const datos = armarEvaluacion(trabajador.id, eventosDemo[evento].id, trabajador.rolPrincipal, perfil, indice);
+        evaluaciones[`${clave}:${evento}`] = await crearEvaluacion(datos);
+        totalEvaluaciones++;
+      }
+    }
+  }
+
+  console.log('=> [Personal] Registrando una corrección de evaluación (queda en la bitácora)...');
+  const original = armarEvaluacion(trabajadores.diego.id, eventosDemo.boda.id, trabajadores.diego.rolPrincipal, 'bajo', 0);
+  const corregida = { ...original, llegada: 3, motivo: 'Corrección tras revisar el reporte del encargado del evento.' };
+  delete corregida.comentarioLlegada;
+  await actualizarEvaluacion(evaluaciones['diego:boda'].id, editarEvaluacionSchema.parse(corregida));
+
+  console.log('=> [Personal] Registrando incidentes...');
+  await crearIncidente({
+    trabajadorId: trabajadores.javiera.id,
+    eventoId: eventosDemo.gala.id,
+    tipo: 'INASISTENCIA',
+    motivo: 'Avisó el mismo día que no podía asistir.',
+  });
+  await crearIncidente({
+    trabajadorId: trabajadores.sebastian.id,
+    eventoId: eventosDemo.corporativo.id,
+    tipo: 'FALTA_GRAVE',
+    motivo: 'Abandonó su puesto durante el evento sin avisar al encargado.',
+  }); // bloquea al trabajador de inmediato
+
+  console.log('=> [Personal] Dando de baja a un trabajador (queda inactivo y conserva su historial)...');
+  await prisma.trabajador.update({ where: { id: trabajadores.constanza.id }, data: { activo: false } });
+
+  const resultado = await prisma.trabajador.findMany({ where: { email: { endsWith: DOMINIO_DEMO } }, orderBy: { nombre: 'asc' } });
+  console.log(`\n=> [Personal] Trabajadores: ${resultado.length} | Eventos de demo: ${EVENTOS_DEMO.length} | Asignaciones: ${totalAsignaciones} | Evaluaciones: ${totalEvaluaciones}`);
+  for (const t of resultado) {
+    const estado = t.bloqueado ? 'BLOQUEADO' : t.activo ? 'activo' : 'inactivo';
+    const promedio = t.promedioGeneral != null ? t.promedioGeneral.toFixed(2) : 'sin evaluaciones';
+    console.log(`   ${t.nombre.padEnd(28)} ${t.rolPrincipal.padEnd(20)} ${estado.padEnd(10)} promedio: ${promedio}`);
+  }
+}
+// =====================================================================
 
 async function main() {
   console.log('Limpiando datos anteriores...');
@@ -96,6 +289,9 @@ async function main() {
     }
   }
 
+  console.log('=> Creando datos de demostración de Personal...');
+  await seedPersonal(clientes[0].id, lugares[0].id);
+
   console.log('--- Seed completado :V ---');
   
 }
@@ -107,4 +303,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await prismaApp.$disconnect();
   });
