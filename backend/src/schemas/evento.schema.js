@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const createEventoSchema = z.object({
+const eventoBase = z.object({
   nombre: z.string().min(2, 'El nombre del evento es obligatorio').max(100),
   fecha: z.coerce.date({ message: 'Debe indicar una fecha válida' }),
   duracionHoras: z.number().positive('La duración debe ser mayor a 0').optional(),
@@ -13,7 +13,23 @@ export const createEventoSchema = z.object({
   lugarId: z.number().int().positive('Debe indicar un lugar válido'),
 });
 
-export const updateEventoSchema = createEventoSchema.partial();
+export const createEventoSchema = eventoBase
+  .extend({
+    clienteId: z.number().int().positive('Debe indicar un cliente válido').nullish(),
+    lugarId: z.number().int().positive('Debe indicar un lugar válido').nullish(),
+    clienteNombre: z.string().trim().max(100).optional(),
+    lugarNombre: z.string().trim().max(100).optional(),
+  })
+  .superRefine((datos, ctx) => {
+    if (!datos.clienteId && !datos.clienteNombre) {
+      ctx.addIssue({ code: 'custom', path: ['clienteNombre'], message: 'Debe indicar un cliente' });
+    }
+    if (!datos.lugarId && !datos.lugarNombre) {
+      ctx.addIssue({ code: 'custom', path: ['lugarNombre'], message: 'Debe indicar un lugar' });
+    }
+  });
+
+export const updateEventoSchema = eventoBase.partial();
 
 export const cancelarEventoSchema = z.object({
   fechaSolicitud: z.coerce.date().optional(),

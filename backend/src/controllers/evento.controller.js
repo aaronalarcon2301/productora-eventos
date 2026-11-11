@@ -1,3 +1,4 @@
+import prisma from '../config/prisma.js';
 import * as eventoService from '../services/evento.service.js';
 
 export const getEventos = async (req, res, next) => {
@@ -21,48 +22,33 @@ export const getEventoById = async (req, res, next) => {
 
 export const createEvento = async (req, res, next) => {
   try {
-    // Ahora extraemos también los nombres tipeados desde req.body
-    const { nombre, fecha, presupuesto, clienteId, clienteNombre, lugarId, lugarNombre } = req.body;
+    const { clienteNombre, lugarNombre, clienteId, lugarId, ...datos } = req.body;
 
-    // 1. Si no viene clienteId pero sí escribieron un nombre, creamos el cliente en la BD
-    let idClienteFinal = clienteId;
-    if (!idClienteFinal && clienteNombre) {
-      const nuevoCliente = await prisma.cliente.create({
-        data: {
-          nombre: clienteNombre,
-          email: 'pendiente@correo.com', // Datos por defecto para que Prisma no falle
-          telefono: 'Pendiente'
-        }
-      });
-      idClienteFinal = nuevoCliente.id;
-    }
-
-    // 2. Si no viene lugarId pero sí escribieron un nombre, creamos el lugar en la BD
-    let idLugarFinal = lugarId;
-    if (!idLugarFinal && lugarNombre) {
-      const nuevoLugar = await prisma.lugar.create({
-        data: {
-          nombre: lugarNombre,
-          ubicacion: 'Por definir', // Datos por defecto
-          capacidad: 0
-        }
-      });
-      idLugarFinal = nuevoLugar.id;
-    }
-
-    // 3. Creamos el evento usando los IDs definitivos (ya sean los que existían o los recién creados)
-    const nuevoEvento = await prisma.evento.create({
-      data: {
-        nombre,
-        fecha: new Date(fecha),
-        presupuesto,
-        clienteId: idClienteFinal,
-        lugarId: idLugarFinal
-      },
-      include: {
-        cliente: true,
-        lugar: true
+    const nuevoEvento = await prisma.$transaction(async (tx) => {
+      let idCliente = clienteId;
+      if (!idCliente) {
+        const existente = await tx.cliente.findFirst({
+          where: { nombre: { equals: clienteNombre, mode: 'insensitive' } },
+        });
+        idCliente = existente
+          ? existente.id
+          : (await tx.cliente.create({ data: { nombre: clienteNombre } })).id;
       }
+
+      let idLugar = lugarId;
+      if (!idLugar) {
+        const existente = await tx.lugar.findFirst({
+          where: { nombre: { equals: lugarNombre, mode: 'insensitive' } },
+        });
+        idLugar = existente
+          ? existente.id
+          : (await tx.lugar.create({ data: { nombre: lugarNombre, ubicacion: 'Por definir', capacidad: 0 } })).id;
+      }
+
+      return tx.evento.create({
+        data: { ...datos, clienteId: idCliente, lugarId: idLugar },
+        include: { cliente: true, lugar: true },
+      });
     });
 
     res.status(201).json(nuevoEvento);

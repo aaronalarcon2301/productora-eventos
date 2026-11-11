@@ -7,6 +7,7 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
   const [formData, setFormData] = useState({ 
     nombre: '', 
     fecha: '', 
+    numInvitados: '',
     presupuesto: '', 
     clienteId: '', 
     lugarId: '',
@@ -23,6 +24,7 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
         body: JSON.stringify({
           nombre: formData.nombre,
           fecha: formData.fecha,
+          numInvitados: Number(formData.numInvitados),
           // Convertimos el presupuesto con puntos a un número limpio para la BD
           presupuesto: Number(String(formData.presupuesto).replace(/\./g, '')),
           clienteId: formData.clienteId ? Number(formData.clienteId) : null,
@@ -32,14 +34,18 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
         })
       });
 
-      if (!res.ok) throw new Error('Error al crear el evento');
+      if (!res.ok) {
+        const cuerpo = await res.json().catch(() => ({}));
+        const detalle = cuerpo.detalles?.map((d) => d.mensaje).join(' · ');
+        throw new Error(detalle || cuerpo.error || 'Error al crear el evento');
+      }
       
       const respuestaBackend = await res.json();
       const eventoFinal = respuestaBackend.data || respuestaBackend.nuevoEvento || respuestaBackend.evento || respuestaBackend;
       
       onGuardar(eventoFinal); 
     } catch (error) {
-      alert('Error al guardar el evento. Verifica la conexión con el servidor o asegúrate de haber seleccionado un cliente/lugar válido.');
+      alert(`No se pudo guardar el evento: ${error.message}`);
     }
   };
 
@@ -59,6 +65,18 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
             <input type="date" required value={formData.fecha} onChange={e => setFormData({...formData, fecha: e.target.value})} />
           </div>
           
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Número de invitados</label>
+            <input
+              type="number"
+              required
+              min="1"
+              value={formData.numInvitados}
+              placeholder="Ej: 80"
+              onChange={e => setFormData({...formData, numInvitados: e.target.value})}
+            />
+          </div>
+
           {/* Campo Presupuesto único y con formateo de puntos */}
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Presupuesto ($)</label>
