@@ -60,3 +60,9 @@
 .resumen-cierre .falta { background: rgba(242, 169, 59, 0.1); border-color: rgba(242, 169, 59, 0.3); }
 .resumen-cierre strong { display: block; font-family: var(--font-display); font-size: 1.4rem; font-weight: 500; }
 .resumen-cierre span { font-size: 13px; color: var(--ink-dim); }
+
+.filtro-fecha { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-dim); }
+.tarjeta-desc { margin: 0; color: var(--ink-dim); font-size: 13px; }
+.stock-grande { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.stock-grande strong { font-family: var(--font-display); font-size: 2rem; font-weight: 500; line-height: 1; }
+.stock-grande span { color: var(--ink-dim); font-size: 13px; }

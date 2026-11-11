@@ -1,7 +1,6 @@
 import prisma from "../config/prisma.js";
 import { httpError } from "../utils/http.js";
-import { eventoFinalizado, inicioDelDia } from "../utils/fechas.js";
-import { formatearFechaCorta } from "./equipo.service.js";
+import { eventoFinalizado } from "../utils/fechas.js";
 
 const INCLUIR = { cliente: true, lugar: true };
 
@@ -23,19 +22,13 @@ async function calcularPendientes(eventoId) {
   };
 }
 
-// Marca el evento como finalizado. Solo desde el día en que se realiza.
+// Marca el evento como finalizado, sin importar su fecha.
 export async function finalizarEvento(id, ahora = new Date()) {
   const evento = await prisma.evento.findUnique({ where: { id } });
   if (!evento) throw httpError(404, "El evento no existe.");
   if (evento.cancelado) throw httpError(409, "Un evento cancelado no se puede finalizar.");
   if (eventoFinalizado(evento, ahora)) {
     throw httpError(409, evento.finalizadoAt ? "Este evento ya fue finalizado." : "Este evento ya finalizó: su fecha ya pasó.");
-  }
-  if (inicioDelDia(evento.fecha) > ahora) {
-    throw httpError(
-      409,
-      `Todavía no se puede finalizar: el evento es el ${formatearFechaCorta(evento.fecha)}. Solo se puede finalizar desde el día en que se realiza.`
-    );
   }
 
   const actualizado = await prisma.evento.update({

@@ -181,35 +181,35 @@ function InventarioEquipos() {
   ];
 
   return (
-    <section className="panel">
+    <section className="pagina-seccion">
       <div className="pers-head">
-        <h2>Inventario de equipos</h2>
+        <div>
+          <h2 className="titulo-seccion">Inventario de equipos</h2>
+          <p className="subtitulo">Stock total y disponibilidad para el día elegido.</p>
+        </div>
         <button className="btn" onClick={() => { setAviso(null); setEditando('nuevo'); }}>+ Nuevo equipo</button>
       </div>
 
       {aviso && <div className={`pers-alert ${aviso.tipo}`}>{aviso.texto}</div>}
 
-      <div className="stats-equipos">
+      <div className="stats">
         {resumen.map((r) => (
-          <div key={r.etiqueta} className={`stat-equipo ${r.clase ?? ''}`}>
+          <div key={r.etiqueta} className={`stat ${r.clase === 'alerta' ? 'alerta' : r.clase === 'destacado' ? 'destacado' : ''}`}>
             <span>{r.etiqueta}</span>
             <strong>{r.valor}</strong>
           </div>
         ))}
       </div>
 
-      <div className="filtros-equipos">
-        <div className="campo buscar">
-          <label>Buscar equipo</label>
-          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Ej: parlante, mesa, carpa" />
-        </div>
-        <div className="campo">
-          <label>Ver disponibilidad del día</label>
+      <div className="barra-filtros">
+        <input className="buscar" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar equipo: parlante, mesa, carpa…" aria-label="Buscar equipo" />
+        <label className="filtro-fecha">
+          Disponibilidad del día
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-        </div>
+        </label>
       </div>
 
-      <div className="chips" style={{ marginBottom: 16 }}>
+      <div className="chips" style={{ marginBottom: 22 }}>
         <button className={`chip ${categoria === '' ? 'activo' : ''}`} onClick={() => setCategoria('')}>Todos</button>
         {CATEGORIAS.map((c) => (
           <button key={c.valor} className={`chip ${categoria === c.valor ? 'activo' : ''}`} onClick={() => setCategoria(c.valor)}>
@@ -219,54 +219,61 @@ function InventarioEquipos() {
       </div>
 
       {visibles.length === 0 ? (
-        <p className="pers-vacio">
+        <p className="estado-vacio">
           {equipos.length === 0 ? 'Aún no hay equipos en el inventario.' : 'Ningún equipo coincide con los filtros.'}
         </p>
       ) : (
-        visibles.map((e) => {
-          const estado = ESTADOS_STOCK[e.estadoStock] ?? ESTADOS_STOCK.DISPONIBLE;
-          const pct = (n) => `${Math.min(100, (n / e.cantidadTotal) * 100)}%`;
-          return (
-            <div key={e.id} className={`fila-equipo ${e.activo ? '' : 'inactivo'}`}>
-              <div>
-                <div className="principal">{e.nombre}</div>
-                <div className="meta">
-                  {etiquetaCategoria(e.categoria)} · Total {e.cantidadTotal}
-                  {e.precioArriendoDia != null && ` · ${formatearPrecio(e.precioArriendoDia)}/día`}
+        <div className="grilla-tarjetas">
+          {visibles.map((e) => {
+            const estado = ESTADOS_STOCK[e.estadoStock] ?? ESTADOS_STOCK.DISPONIBLE;
+            const pct = (n) => `${Math.min(100, (n / e.cantidadTotal) * 100)}%`;
+            return (
+              <article key={e.id} className={`tarjeta ${e.activo ? '' : 'apagada'}`}>
+                <div className="tarjeta-cab">
+                  <div className="tarjeta-titulo">
+                    <h3>{e.nombre}</h3>
+                    <span>
+                      {etiquetaCategoria(e.categoria)}
+                      {e.precioArriendoDia != null && ` · ${formatearPrecio(e.precioArriendoDia)}/día`}
+                    </span>
+                  </div>
+                  <span className={`status ${estado.clase}`}>{estado.texto}</span>
                 </div>
-                {e.descripcion && <div className="meta">{e.descripcion}</div>}
-              </div>
 
-              <div>
-                <div className="barra-stock" aria-hidden="true">
-                  <div className="reservado" style={{ width: pct(e.reservadoDia) }} />
-                  <div className="mantencion" style={{ width: pct(e.cantidadMantencion) }} />
-                </div>
-                <div className="stock-texto">
-                  <strong>{e.disponible}</strong> disponibles · {e.reservadoDia} reservadas
-                  {e.cantidadMantencion > 0 && ` · ${e.cantidadMantencion} en mantención`}
-                </div>
-              </div>
+                {e.descripcion && <p className="tarjeta-desc">{e.descripcion}</p>}
 
-              <div className="acciones-col">
-                <span className={`status ${estado.clase}`}>{estado.texto}</span>
-                <div className="acciones">
-                  {e.activo ? (
-                    <>
+                <div>
+                  <div className="stock-grande">
+                    <strong>{e.disponible}</strong>
+                    <span>de {e.cantidadTotal} disponibles</span>
+                  </div>
+                  <div className="barra-stock" aria-hidden="true">
+                    <div className="reservado" style={{ width: pct(e.reservadoDia) }} />
+                    <div className="mantencion" style={{ width: pct(e.cantidadMantencion) }} />
+                  </div>
+                  <div className="stock-texto">
+                    {e.reservadoDia} reservadas
+                    {e.cantidadMantencion > 0 && ` · ${e.cantidadMantencion} en mantención`}
+                  </div>
+                </div>
+
+                <div className="tarjeta-pie">
+                  <div className="acciones">
+                    {e.activo ? (
                       <button className="btn btn-ghost btn-sm" onClick={() => { setAviso(null); setEditando(e); }}>Editar</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => eliminar(e)}>Eliminar</button>
-                    </>
-                  ) : (
-                    <button className="btn btn-ghost btn-sm" onClick={() => reactivar(e)}>Reactivar</button>
-                  )}
+                    ) : (
+                      <button className="btn btn-ghost btn-sm" onClick={() => reactivar(e)}>Reactivar</button>
+                    )}
+                  </div>
+                  {e.activo && <button className="link-peligro" onClick={() => eliminar(e)}>Eliminar</button>}
                 </div>
-              </div>
-            </div>
-          );
-        })
+              </article>
+            );
+          })}
+        </div>
       )}
 
-      <p className="ayuda" style={{ marginTop: 16 }}>
+      <p className="ayuda" style={{ marginTop: 20 }}>
         <span style={{ color: 'var(--cue)' }}>■</span> reservado ese día ·{' '}
         <span style={{ color: 'var(--cancel)' }}>■</span> en mantención. Los equipos con historial no se borran: se desactivan.
       </p>

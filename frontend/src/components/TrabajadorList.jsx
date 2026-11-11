@@ -46,6 +46,11 @@ function formDesdeTrabajador(t) {
   };
 }
 
+function iniciales(nombre) {
+  const partes = nombre.trim().split(/\s+/);
+  return ((partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? '')).toUpperCase();
+}
+
 function Campo({ etiqueta, requerido, ayuda, children }) {
   return (
     <div className="campo">
@@ -201,6 +206,7 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
   const [aviso, setAviso] = useState(null); // { tipo: 'ok' | 'error', texto }
   const [editando, setEditando] = useState(null); // null | 'nuevo' | trabajador completo
   const [busqueda, setBusqueda] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -279,58 +285,120 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
     );
   }
 
+  const activos = trabajadores.filter((t) => t.activo && !t.bloqueado);
+  const conNota = trabajadores.filter((t) => t.promedioGeneral != null);
+  const promedioEquipo = conNota.length
+    ? (conNota.reduce((s, t) => s + t.promedioGeneral, 0) / conNota.length).toFixed(1)
+    : '—';
+  const resumen = [
+    { etiqueta: 'Trabajadores', valor: trabajadores.length },
+    { etiqueta: 'Activos', valor: activos.length, clase: 'ok' },
+    { etiqueta: 'Bloqueados o inactivos', valor: trabajadores.length - activos.length, clase: 'alerta' },
+    { etiqueta: 'Promedio del equipo', valor: promedioEquipo, clase: 'destacado' },
+  ];
+  const visibles = filtrados.filter((t) => {
+    if (filtroEstado === 'activos') return t.activo && !t.bloqueado;
+    if (filtroEstado === 'otros') return !t.activo || t.bloqueado;
+    return true;
+  });
+
   return (
-    <section className="panel">
+    <section className="pagina-seccion">
       <div className="pers-head">
-        <h2>Trabajadores eventuales</h2>
+        <div>
+          <h2 className="titulo-seccion">Trabajadores eventuales</h2>
+          <p className="subtitulo">Personal disponible para asignar a los eventos.</p>
+        </div>
         <button className="btn" onClick={() => { setAviso(null); setEditando('nuevo'); }}>+ Nuevo trabajador</button>
       </div>
 
       {aviso && <div className={`pers-alert ${aviso.tipo}`}>{aviso.texto}</div>}
 
-      <div className="campo">
-        <input placeholder="Buscar por nombre o RUT…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+      <div className="stats">
+        {resumen.map((r) => (
+          <div key={r.etiqueta} className={`stat ${r.clase ?? ''}`}>
+            <span>{r.etiqueta}</span>
+            <strong>{r.valor}</strong>
+          </div>
+        ))}
+      </div>
+
+      <div className="barra-filtros">
+        <input
+          className="buscar"
+          placeholder="Buscar por nombre o RUT…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
+        <div className="chips">
+          {[['todos', 'Todos'], ['activos', 'Activos'], ['otros', 'Bloqueados / inactivos']].map(([valor, texto]) => (
+            <button key={valor} className={`chip ${filtroEstado === valor ? 'activo' : ''}`} onClick={() => setFiltroEstado(valor)}>
+              {texto}
+            </button>
+          ))}
+        </div>
       </div>
 
       {cargando ? (
         <p className="pers-vacio">Cargando trabajadores…</p>
-      ) : filtrados.length === 0 ? (
+      ) : visibles.length === 0 ? (
         <p className="pers-vacio">No hay trabajadores para mostrar.</p>
       ) : (
-        filtrados.map((t) => {
-          const estado = estadoTrabajador(t);
-          return (
-            <div key={t.id} className="fila-personal">
-              <div>
-                <div className="principal">{t.nombre}</div>
-                <div className="meta">
-                  {etiquetaRol(t.rolPrincipal)}
-                  {t.rut && ` · RUT ${t.rut}`}
-                  {t.telefono && ` · ${t.telefono}`}
-                  {t.comuna && ` · ${t.comuna}`}
-                </div>
-                <div className="meta">
-                  Disponibilidad: {resumenDisponibilidad(t)}
-                  {t.numeroCuentaUltimos4 && ` · Cuenta ••••${t.numeroCuentaUltimos4}`}
-                </div>
-                <div className="insignias">
+        <div className="grilla-tarjetas">
+          {visibles.map((t) => {
+            const estado = estadoTrabajador(t);
+            return (
+              <article key={t.id} className={`tarjeta ${t.activo && !t.bloqueado ? '' : 'apagada'}`}>
+                <div className="tarjeta-cab">
+                  <div className="avatar" aria-hidden="true">{iniciales(t.nombre)}</div>
+                  <div className="tarjeta-titulo">
+                    <h3>{t.nombre}</h3>
+                    <span>{etiquetaRol(t.rolPrincipal)}</span>
+                  </div>
                   <span className={`status ${estado.clase}`}>{estado.texto}</span>
-                  {fichaIncompleta(t) && <span className="status pending">Ficha incompleta</span>}
-                  <span className="meta">
-                    Promedio: {t.promedioGeneral != null ? t.promedioGeneral.toFixed(1) : 'sin evaluaciones'}
-                  </span>
                 </div>
-              </div>
-              <div className="acciones">
-                <button className="btn btn-ghost btn-sm" onClick={() => onHistorial(t.id)}>Historial</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => onEvaluar(t.id)}>Evaluar</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => editar(t)}>Editar</button>
-                {!t.activo && <button className="btn btn-ghost btn-sm" onClick={() => reactivar(t)}>Reactivar</button>}
-                <button className="btn btn-danger btn-sm" onClick={() => eliminar(t)}>Eliminar</button>
-              </div>
-            </div>
-          );
-        })
+
+                <div className="nota-bloque">
+                  {t.promedioGeneral != null ? (
+                    <>
+                      <span className="nota-valor">★ {t.promedioGeneral.toFixed(1)}</span>
+                      <span className="nota-barra"><i style={{ width: `${(t.promedioGeneral / 5) * 100}%` }} /></span>
+                    </>
+                  ) : (
+                    <span className="sin-nota">Sin evaluaciones aún</span>
+                  )}
+                  {fichaIncompleta(t) && <span className="status pending">Ficha incompleta</span>}
+                </div>
+
+                <dl className="tarjeta-datos">
+                  {t.telefono && (<><dt>Teléfono</dt><dd>{t.telefono}</dd></>)}
+                  {t.comuna && (<><dt>Comuna</dt><dd>{t.comuna}</dd></>)}
+                  {t.rut && (<><dt>RUT</dt><dd>{t.rut}</dd></>)}
+                  {t.numeroCuentaUltimos4 && (<><dt>Cuenta</dt><dd>•••• {t.numeroCuentaUltimos4}</dd></>)}
+                </dl>
+
+                <div className="dias-semana" title={resumenDisponibilidad(t)}>
+                  {DIAS.map((d) => (
+                    <span key={d.valor} className={t.disponibilidadDias?.includes(d.valor) ? 'si' : ''}>
+                      {d.corto.charAt(0)}
+                    </span>
+                  ))}
+                  <small>{TURNOS.find((x) => x.valor === t.disponibilidadTurno)?.etiqueta ?? 'Turno sin definir'}</small>
+                </div>
+
+                <div className="tarjeta-pie">
+                  <div className="acciones">
+                    <button className="btn btn-sm" onClick={() => onHistorial(t.id)}>Historial</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => onEvaluar(t.id)}>Evaluar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => editar(t)}>Editar</button>
+                    {!t.activo && <button className="btn btn-ghost btn-sm" onClick={() => reactivar(t)}>Reactivar</button>}
+                  </div>
+                  <button className="link-peligro" onClick={() => eliminar(t)}>Eliminar</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       )}
     </section>
   );

@@ -23,7 +23,12 @@ function GestionPersonal() {
   };
 
   return (
-    <section>
+    <section className="pagina">
+      <header className="pagina-cab">
+        <h1>Personal</h1>
+        <p>Trabajadores eventuales, asignación a eventos, evaluaciones e historial.</p>
+      </header>
+
       <div className="subtabs">
         {VISTAS.map((v) => (
           <button key={v.id} className={vista === v.id ? 'active' : ''} onClick={() => setVista(v.id)}>

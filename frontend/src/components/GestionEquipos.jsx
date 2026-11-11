@@ -15,7 +15,12 @@ function GestionEquipos() {
   const [vista, setVista] = useState('inventario');
 
   return (
-    <section>
+    <section className="pagina">
+      <header className="pagina-cab">
+        <h1>Equipos</h1>
+        <p>Inventario, reservas por evento y control de entrega y devolución.</p>
+      </header>
+
       <div className="subtabs">
         {VISTAS.map((v) => (
           <button key={v.id} className={vista === v.id ? 'active' : ''} onClick={() => setVista(v.id)}>
