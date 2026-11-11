@@ -19,9 +19,6 @@ function promedio(valores) {
   return Number((valores.reduce((suma, n) => suma + n, 0) / valores.length).toFixed(2));
 }
 
-// Arma las columnas de la evaluación (notas, comentarios y promedios) a partir del
-// cuerpo validado. Los comentarios ausentes se guardan como null, así al editar
-// una evaluación se limpian los comentarios que el administrador quitó.
 function construirDatosEvaluacion(data) {
   const tecnico = esRolTecnico(data.rolEvento);
   const campos = { rolEvento: data.rolEvento };
@@ -61,7 +58,6 @@ async function obtenerEvaluacionOFallar(id) {
   return evaluacion;
 }
 
-// Copia serializable de la evaluación para guardarla en la bitácora (las fechas pasan a texto).
 function instantanea(evaluacion) {
   return JSON.parse(JSON.stringify(evaluacion));
 }
@@ -79,12 +75,10 @@ export async function crearEvaluacion(data) {
     throw httpError(409, "No se puede evaluar a un trabajador en un evento cancelado.");
   }
 
-  // Regla: la evaluación solo se habilita cuando el evento ya finalizó.
   if (!eventoFinalizado(evento)) {
     throw httpError(409, "El evento aún no finaliza: la evaluación se habilita cuando termine.");
   }
 
-  // Regla: solo se evalúa a quien estuvo asignado al evento, con el rol que tuvo en él.
   const asignacion = await prisma.asignacionTrabajador.findUnique({
     where: { trabajadorId_eventoId: { trabajadorId: data.trabajadorId, eventoId: data.eventoId } },
   });
@@ -119,8 +113,6 @@ export async function crearEvaluacion(data) {
   }
 }
 
-// Editar: vuelve a aplicar las mismas validaciones (ya hechas por el schema),
-// recalcula promedios y deja registro de quién y qué se cambió.
 export async function actualizarEvaluacion(id, data) {
   const existente = await obtenerEvaluacionOFallar(id);
 
@@ -154,7 +146,6 @@ export async function actualizarEvaluacion(id, data) {
   });
 }
 
-// Eliminar: exige motivo (lo valida el schema), guarda copia en la bitácora y recalcula promedios.
 export async function eliminarEvaluacion(id, { motivo, adminId }) {
   const existente = await obtenerEvaluacionOFallar(id);
 

@@ -1,5 +1,3 @@
-// Constantes compartidas por las pantallas de Personal.
-
 export const ROLES = [
   { valor: 'TECNICO_SONIDO', etiqueta: 'Técnico de sonido' },
   { valor: 'TECNICO_ILUMINACION', etiqueta: 'Técnico de iluminación' },
@@ -44,7 +42,6 @@ export const BANCOS = [
   'Banco Internacional', 'Coopeuch', 'Mercado Pago', 'Tenpo', 'Otro',
 ];
 
-// "Lun, Mar, Sáb · Nocturno" o "Sin definir"
 export function resumenDisponibilidad(trabajador) {
   const dias = DIAS.filter((d) => trabajador.disponibilidadDias?.includes(d.valor)).map((d) => d.corto);
   const turno = TURNOS.find((t) => t.valor === trabajador.disponibilidadTurno)?.etiqueta;
@@ -52,10 +49,8 @@ export function resumenDisponibilidad(trabajador) {
   return partes.length > 0 ? partes.join(' · ') : 'Sin definir';
 }
 
-// Notas que exigen un comentario que las justifique.
 export const NOTAS_CON_COMENTARIO = [1, 2, 5];
 
-// Criterios de la evaluación (los mismos campos que valida el backend).
 export const GRUPOS_EVALUACION = [
   {
     id: 'puntualidad',
@@ -104,7 +99,6 @@ export function etiquetaRol(valor) {
   return ROLES.find((r) => r.valor === valor)?.etiqueta ?? valor;
 }
 
-// Las fechas de los eventos se guardan en UTC; se muestran en UTC para no correr el día.
 export function formatearFecha(iso) {
   return new Date(iso).toLocaleDateString('es-CL', {
     timeZone: 'UTC',

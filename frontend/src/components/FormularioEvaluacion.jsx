@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { apiFetch } from '../api/apiFetch';
 import { GRUPOS_EVALUACION, ROLES_TECNICOS, NOTAS_CON_COMENTARIO, etiquetaRol } from './personalConstantes';
 
-// Sirve para crear (POST) y para editar (PUT) una evaluación.
-// Si recibe `evaluacion`, entra en modo edición con los valores cargados.
 function FormularioEvaluacion({ trabajadorId, trabajadorNombre, eventoId, eventoNombre, rolEvento, evaluacion, onGuardado, onCancelar }) {
   const esEdicion = Boolean(evaluacion);
   const esTecnico = ROLES_TECNICOS.includes(rolEvento);

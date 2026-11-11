@@ -13,7 +13,7 @@ function estadoAsignacion(a) {
 function EvaluacionTrabajador({ trabajadorId, setTrabajadorId, onVerHistorial }) {
   const [trabajadores, setTrabajadores] = useState([]);
   const [asignaciones, setAsignaciones] = useState([]);
-  const [evaluando, setEvaluando] = useState(null); // asignación que se está evaluando
+  const [evaluando, setEvaluando] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [version, setVersion] = useState(0);
 

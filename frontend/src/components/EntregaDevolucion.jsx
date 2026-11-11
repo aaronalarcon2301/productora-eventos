@@ -9,7 +9,7 @@ function EntregaDevolucion() {
   const [eventos, setEventos] = useState([]);
   const [eventoId, setEventoId] = useState('');
   const [reservas, setReservas] = useState([]);
-  const [devoluciones, setDevoluciones] = useState({}); // borradores por id de reserva
+  const [devoluciones, setDevoluciones] = useState({});
   const [aviso, setAviso] = useState(null);
   const [version, setVersion] = useState(0);
 

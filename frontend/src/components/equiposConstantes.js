@@ -1,5 +1,3 @@
-// Constantes y utilidades compartidas por las pantallas de Equipos.
-
 export const CATEGORIAS = [
   { valor: 'SONIDO', etiqueta: 'Sonido' },
   { valor: 'ILUMINACION', etiqueta: 'Iluminación' },
@@ -13,7 +11,6 @@ export function etiquetaCategoria(valor) {
   return CATEGORIAS.find((c) => c.valor === valor)?.etiqueta ?? valor;
 }
 
-// Estado de stock que calcula el backend para un día determinado.
 export const ESTADOS_STOCK = {
   DISPONIBLE: { texto: 'Disponible', clase: 'confirmed' },
   POCAS: { texto: 'Pocas unidades', clase: 'pending' },
@@ -28,7 +25,6 @@ export const ESTADOS_RESERVA = {
   DEVUELTO: { texto: 'Devuelto', clase: 'confirmed' },
 };
 
-// Fecha de hoy como AAAA-MM-DD (valor de un <input type="date">).
 export function hoyISO() {
   const d = new Date();
   const mes = String(d.getMonth() + 1).padStart(2, '0');

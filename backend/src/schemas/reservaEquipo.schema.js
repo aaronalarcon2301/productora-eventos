@@ -9,7 +9,6 @@ export const crearReservaEquipoSchema = z.object({
   equipoId: z.number().int().positive(),
   eventoId: z.number().int().positive(),
   cantidad: z.number().int("La cantidad debe ser un número entero").min(1, "La cantidad debe ser al menos 1"),
-  // Opcional: trabajador asignado al evento que queda a cargo del equipo.
   responsableId: z.number().int().positive().nullable().optional(),
 });
 

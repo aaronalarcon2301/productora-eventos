@@ -8,7 +8,6 @@ function conEstado(evento) {
   return { ...evento, finalizado: eventoFinalizado(evento) };
 }
 
-// Lo que queda por hacer después de finalizar: evaluar al personal y cerrar los equipos.
 async function calcularPendientes(eventoId) {
   const [asignaciones, evaluaciones, reservas] = await Promise.all([
     prisma.asignacionTrabajador.findMany({ where: { eventoId } }),
@@ -22,7 +21,6 @@ async function calcularPendientes(eventoId) {
   };
 }
 
-// Marca el evento como finalizado, sin importar su fecha.
 export async function finalizarEvento(id, ahora = new Date()) {
   const evento = await prisma.evento.findUnique({ where: { id } });
   if (!evento) throw httpError(404, "El evento no existe.");
@@ -39,8 +37,6 @@ export async function finalizarEvento(id, ahora = new Date()) {
   return { evento: conEstado(actualizado), pendientes: await calcularPendientes(id) };
 }
 
-// Deshace una finalización hecha a mano (por ejemplo, si se apretó por error).
-// No se puede si el evento ya pasó de fecha o si ya tiene evaluaciones o incidentes registrados.
 export async function reabrirEvento(id, ahora = new Date()) {
   const evento = await prisma.evento.findUnique({ where: { id } });
   if (!evento) throw httpError(404, "El evento no existe.");

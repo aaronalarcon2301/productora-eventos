@@ -203,8 +203,8 @@ function FormularioTrabajador({ trabajador, onGuardado, onCancelar }) {
 function TrabajadorList({ onEvaluar, onHistorial }) {
   const [trabajadores, setTrabajadores] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [aviso, setAviso] = useState(null); // { tipo: 'ok' | 'error', texto }
-  const [editando, setEditando] = useState(null); // null | 'nuevo' | trabajador completo
+  const [aviso, setAviso] = useState(null);
+  const [editando, setEditando] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [version, setVersion] = useState(0);
@@ -235,7 +235,6 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
     recargar();
   };
 
-  // El listado no trae el número de cuenta completo: se pide la ficha completa al editar.
   const editar = async (t) => {
     setAviso(null);
     try {

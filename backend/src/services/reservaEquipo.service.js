@@ -9,8 +9,6 @@ import {
 
 const INCLUIR = { equipo: true, responsable: true };
 
-// Bloquea la fila del equipo hasta terminar la transacción, para que dos reservas
-// simultáneas no se lleven las mismas unidades.
 async function bloquearEquipo(tx, equipoId) {
   await tx.$queryRaw`SELECT id FROM equipos WHERE id = ${equipoId} FOR UPDATE`;
 }
@@ -99,8 +97,6 @@ export async function registrarEntrega(id) {
   });
 }
 
-// Registra lo que volvió: las unidades dañadas pasan a mantención y las faltantes
-// se descuentan del stock total. El resto vuelve a quedar disponible.
 export async function registrarDevolucion(id, { cantidadDanada = 0, cantidadFaltante = 0, observacion }) {
   return prisma.$transaction(async (tx) => {
     const previa = await tx.reservaEquipo.findUnique({ where: { id } });

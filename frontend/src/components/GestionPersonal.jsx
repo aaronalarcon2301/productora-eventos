@@ -14,7 +14,6 @@ const VISTAS = [
 
 function GestionPersonal() {
   const [vista, setVista] = useState('trabajadores');
-  // Trabajador seleccionado: se comparte entre "Evaluar" e "Historial".
   const [trabajadorId, setTrabajadorId] = useState('');
 
   const irA = (nuevaVista, id) => {

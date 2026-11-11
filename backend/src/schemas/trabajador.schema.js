@@ -25,12 +25,10 @@ export const BANCOS = [
   "Otro",
 ];
 
-// Los formularios mandan "" en los campos opcionales vacíos: se guardan como null.
 const vacioANull = (valor) => (typeof valor === "string" && valor.trim() === "" ? null : valor);
 const opcional = (schema) => z.preprocess(vacioANull, schema.nullable().optional());
 
 const campos = {
-  // --- Datos personales ---
   nombre: z
     .string()
     .trim()
@@ -55,7 +53,6 @@ const campos = {
     .refine((valor) => /^\+?\d{8,12}$/.test(valor), "Ingresa un teléfono válido (ej: +56 9 1234 5678)."),
   comuna: opcional(z.string().trim().max(80, "La comuna no puede superar los 80 caracteres.")),
 
-  // --- Información laboral ---
   rolPrincipal: z.enum(ROLES, { error: "Selecciona un cargo principal válido." }),
   aniosExperiencia: opcional(
     z
@@ -70,7 +67,6 @@ const campos = {
     .optional(),
   disponibilidadTurno: opcional(z.enum(TURNOS, { error: "Selecciona un turno válido." })),
 
-  // --- Información administrativa ---
   tallaUniforme: opcional(z.enum(TALLAS, { error: "Selecciona una talla de uniforme válida." })),
   banco: opcional(z.enum(BANCOS, { error: "Selecciona un banco de la lista." })),
   tipoCuenta: opcional(z.enum(TIPOS_CUENTA, { error: "Selecciona un tipo de cuenta válido." })),
@@ -89,7 +85,6 @@ const DATOS_BANCARIOS = [
   ["numeroCuenta", "el número de cuenta"],
 ];
 
-// Los datos bancarios son opcionales, pero si se ingresa uno deben venir los tres.
 function validarDatosBancarios(datos, ctx) {
   const presentes = DATOS_BANCARIOS.filter(([campo]) => datos[campo] !== undefined && datos[campo] !== null);
   if (presentes.length === 0 || presentes.length === DATOS_BANCARIOS.length) return;
@@ -105,10 +100,8 @@ function validarDatosBancarios(datos, ctx) {
   }
 }
 
-// Registrar: nombre, RUT, correo, teléfono y cargo principal son obligatorios.
 export const crearTrabajadorSchema = z.object(campos).superRefine(validarDatosBancarios);
 
-// Editar: se pueden enviar solo los campos que cambian; `activo` sirve para reactivar.
 export const actualizarTrabajadorSchema = z
   .object(campos)
   .partial()

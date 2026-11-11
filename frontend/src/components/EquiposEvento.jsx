@@ -9,7 +9,7 @@ function EquiposEvento() {
   const [eventos, setEventos] = useState([]);
   const [eventoId, setEventoId] = useState('');
   const [reservas, setReservas] = useState([]);
-  const [equipos, setEquipos] = useState([]); // con la disponibilidad en la fecha del evento
+  const [equipos, setEquipos] = useState([]);
   const [asignados, setAsignados] = useState([]);
   const [form, setForm] = useState(FORM_VACIO);
   const [aviso, setAviso] = useState(null);

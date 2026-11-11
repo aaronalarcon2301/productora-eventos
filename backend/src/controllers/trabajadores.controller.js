@@ -44,7 +44,6 @@ export async function actualizar(req, res, next) {
   }
 }
 
-// Devuelve { accion: "ELIMINADO" | "INACTIVADO", mensaje }
 export async function eliminar(req, res, next) {
   try {
     const resultado = await trabajadorService.eliminarTrabajador(

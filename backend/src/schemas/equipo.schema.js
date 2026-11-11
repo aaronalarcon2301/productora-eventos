@@ -9,7 +9,6 @@ export const CATEGORIAS_EQUIPO = [
   "OTRO",
 ];
 
-// "" o solo espacios -> null (permite limpiar un campo opcional desde el formulario).
 const vacioANull = (valor) => {
   if (typeof valor === "string" && valor.trim() === "") return null;
   return valor;

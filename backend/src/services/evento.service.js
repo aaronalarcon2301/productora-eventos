@@ -1,7 +1,6 @@
 import prisma from '../config/prisma.js';
 import { eventoFinalizado } from '../utils/fechas.js';
 
-// Agrega `finalizado` (marcado a mano o ya pasó su fecha) para que el frontend lo muestre.
 const conEstado = (evento) => (evento ? { ...evento, finalizado: eventoFinalizado(evento) } : evento);
 
 export const getAllEventos = (filtros = {}) => {

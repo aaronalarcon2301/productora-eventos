@@ -1,14 +1,12 @@
 import prisma from "../config/prisma.js";
 import { httpError } from "../utils/http.js";
 
-// `db` permite ejecutar el recálculo dentro de una transacción (tx) o con el cliente normal.
 export async function recalcularPromedioGeneral(trabajadorId, db = prisma) {
   const evaluaciones = await db.evaluacion.findMany({
     where: { trabajadorId },
     select: { promedioEvaluacion: true },
   });
 
-  // Si ya no quedan evaluaciones (por ejemplo, se eliminó la última), el promedio se limpia.
   const promedioGeneral =
     evaluaciones.length === 0
       ? null
@@ -25,8 +23,6 @@ export async function recalcularPromedioGeneral(trabajadorId, db = prisma) {
   });
 }
 
-// El número de cuenta completo solo se devuelve en obtenerTrabajador (formulario de edición).
-// En listados y respuestas de escritura solo se expone el final de la cuenta.
 function ocultarCuenta(trabajador) {
   const { numeroCuenta, ...resto } = trabajador;
   return { ...resto, numeroCuentaUltimos4: numeroCuenta ? numeroCuenta.slice(-4) : null };
@@ -39,7 +35,6 @@ function errorSiRutDuplicado(err) {
   throw err;
 }
 
-// filtros.asignables = true -> solo trabajadores activos y no bloqueados (para asignar a eventos)
 export async function listarTrabajadores(filtros = {}) {
   const where = filtros.asignables ? { activo: true, bloqueado: false } : {};
 
@@ -74,8 +69,6 @@ export async function actualizarTrabajador(id, data) {
   }
 }
 
-// Si el trabajador ya tiene evaluaciones, incidentes o asignaciones NO se borra:
-// se marca como inactivo (baja lógica) para conservar su historial.
 export async function eliminarTrabajador(id) {
   const trabajador = await prisma.trabajador.findUnique({
     where: { id },

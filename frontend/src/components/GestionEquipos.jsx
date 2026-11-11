@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './personal.css'; // clases compartidas (subtabs, paneles, avisos)
+import './personal.css';
 import './equipos.css';
 import InventarioEquipos from './InventarioEquipos';
 import EquiposEvento from './EquiposEvento';

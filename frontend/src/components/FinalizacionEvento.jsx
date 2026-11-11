@@ -11,8 +11,6 @@ function textoPendientes({ trabajadoresSinEvaluar, equiposPendientes }) {
   return partes.length > 0 ? `Queda pendiente: ${partes.join(' y ')}.` : 'No quedan evaluaciones ni equipos pendientes.';
 }
 
-// Panel para marcar un evento como finalizado (o reabrirlo si fue un error).
-// Al finalizar, se habilita la evaluación del personal y la devolución de equipos.
 function FinalizacionEvento({ evento, onActualizado }) {
   const [error, setError] = useState(null);
   const [resultado, setResultado] = useState(null);

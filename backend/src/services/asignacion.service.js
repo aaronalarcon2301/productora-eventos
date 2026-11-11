@@ -16,7 +16,6 @@ export async function asignarTrabajador({ trabajadorId, eventoId, rol }) {
   if (!evento) throw httpError(404, "El evento no existe.");
   if (evento.cancelado) throw httpError(409, "No se puede asignar personal a un evento cancelado.");
 
-  // Regla: un trabajador no puede estar en dos eventos el mismo día.
   const cruce = await prisma.asignacionTrabajador.findFirst({
     where: {
       trabajadorId,
@@ -71,7 +70,6 @@ export async function listarAsignacionesPorEvento(eventoId) {
   }));
 }
 
-// Eventos en los que participó un trabajador, indicando si ya se pueden evaluar.
 export async function listarAsignacionesPorTrabajador(trabajadorId) {
   const [asignaciones, evaluaciones] = await Promise.all([
     prisma.asignacionTrabajador.findMany({

@@ -13,7 +13,6 @@ export function formatearFechaCorta(fecha) {
   });
 }
 
-// "2026-11-14" -> Date (medianoche UTC). Sin valor -> hoy.
 export function parseFechaConsulta(valor) {
   if (valor === undefined || valor === "") return new Date();
   if (!FECHA_ISO.test(valor) || Number.isNaN(new Date(valor).getTime())) {
@@ -22,9 +21,6 @@ export function parseFechaConsulta(valor) {
   return new Date(`${valor}T12:00:00.000Z`);
 }
 
-// Unidades de cada equipo que están comprometidas en eventos de un día:
-// reservas de eventos NO cancelados que todavía no fueron devueltas.
-// Un evento cancelado libera sus equipos automáticamente (no se cuenta).
 export async function unidadesReservadasPorEquipo(fecha, { excluirEventoId, db = prisma } = {}) {
   const where = {
     estado: { not: "DEVUELTO" },
@@ -51,10 +47,6 @@ export function calcularEstadoStock(equipo, disponible) {
   return "DISPONIBLE";
 }
 
-// Lista el catálogo con la disponibilidad de un día.
-//   ?fecha=AAAA-MM-DD   -> disponibilidad de ese día (por defecto hoy)
-//   ?eventoId=N         -> disponibilidad en la fecha de ese evento, sin contar sus propias reservas
-//   ?soloActivos=true   -> oculta los equipos desactivados
 export async function listarEquipos({ fecha, eventoId, soloActivos } = {}) {
   let fechaConsulta;
   if (eventoId) {
@@ -121,7 +113,6 @@ export async function crearEquipo(data) {
   }
 }
 
-// Reservas que todavía comprometen unidades (sin devolver, en eventos no cancelados).
 async function reservasVigentes(equipoId, db = prisma) {
   return db.reservaEquipo.findMany({
     where: { equipoId, estado: { not: "DEVUELTO" }, evento: { cancelado: false } },
@@ -149,7 +140,6 @@ export async function actualizarEquipo(id, data) {
     );
   }
 
-  // Si se reduce el stock operativo, no puede quedar por debajo de lo ya comprometido en un mismo día.
   if (unidadesOperativas(nuevo) < unidadesOperativas(equipo)) {
     const porDia = new Map();
     for (const r of vigentes) {
@@ -174,7 +164,6 @@ export async function actualizarEquipo(id, data) {
   }
 }
 
-// Si el equipo nunca se usó se borra; si tiene historial, se desactiva (baja lógica).
 export async function eliminarEquipo(id) {
   const equipo = await prisma.equipo.findUnique({ where: { id } });
   if (!equipo) throw httpError(404, "El equipo no existe.");

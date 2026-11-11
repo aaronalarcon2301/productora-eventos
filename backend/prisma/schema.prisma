@@ -50,9 +50,6 @@ model Evento {
   fechaCancelacion DateTime?
   montoDevolucion  Float?
 
-  // --- Finalización ---
-  // Se completa al marcar el evento como finalizado desde la app. Si es null, el evento
-  // se considera finalizado igualmente cuando termina el día de su fecha.
   finalizadoAt     DateTime?
 
   createdAt        DateTime  @default(now())
@@ -107,25 +104,22 @@ model Trabajador {
   nombre          String        @db.VarChar(100)
   rolPrincipal    RolTrabajador
 
-  // --- Datos personales ---
-  rut             String?       @unique @db.VarChar(12)  // normalizado: 12345678-5
+  rut             String?       @unique @db.VarChar(12)
   email           String?       @db.VarChar(120)
   telefono        String?       @db.VarChar(20)
   comuna          String?       @db.VarChar(80)
 
-  // --- Información laboral (el cargo principal es rolPrincipal) ---
   aniosExperiencia    Int?
   disponibilidadDias  DiaSemana[]       @default([])
   disponibilidadTurno TurnoDisponible?
 
-  // --- Información administrativa ---
   tallaUniforme   String?       @db.VarChar(10)
   banco           String?       @db.VarChar(60)
   tipoCuenta      TipoCuenta?
   numeroCuenta    String?       @db.VarChar(30)
 
-  activo          Boolean       @default(true)   // false = baja lógica (conserva historial)
-  bloqueado       Boolean       @default(false)  // true = falta grave registrada
+  activo          Boolean       @default(true)
+  bloqueado       Boolean       @default(false)
   promedioGeneral Float?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -138,7 +132,6 @@ model Trabajador {
   @@map("trabajadores")
 }
 
-
 model Evaluacion {
   id Int @id @default(autoincrement())
 
@@ -150,7 +143,6 @@ model Evaluacion {
 
   rolEvento RolTrabajador
 
-  
   llegada                        Int
   comentarioLlegada               String? @db.Text
   cumplimientoHorarios            Int
@@ -159,7 +151,6 @@ model Evaluacion {
   comentarioTiemposPreparacion    String? @db.Text
   promedioPuntualidad             Float
 
-  
   comunicacion           Int
   comentarioComunicacion String? @db.Text
   atencion               Int
@@ -168,7 +159,6 @@ model Evaluacion {
   comentarioConducta     String? @db.Text
   promedioTrato          Float
 
-  
   cumplimiento           Int
   comentarioCumplimiento String? @db.Text
   autonomia              Int
@@ -177,7 +167,6 @@ model Evaluacion {
   comentarioResolucion   String? @db.Text
   promedioEficiencia     Float
 
-  
   usoEquipos                  Int?
   comentarioUsoEquipos        String? @db.Text
   cuidadoEquipos              Int?
@@ -207,7 +196,7 @@ model Incidente {
   evento   Evento? @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   tipo   TipoIncidente
-  motivo String? @db.Text // obligatorio solo si tipo = FALTA_GRAVE (se valida en incidente.schema.js)
+  motivo String? @db.Text
 
   createdAt DateTime @default(now())
 
@@ -221,8 +210,6 @@ model PoliticaDevolucion {
   porcentaje  Int   // Porcentaje a devolver (ej: 100, 50, 0)
 }
 
-// Qué trabajador participa en qué evento y con qué rol.
-// Es la base para validar quién puede ser evaluado y evitar cruces de agenda.
 model AsignacionTrabajador {
   id Int @id @default(autoincrement())
 
@@ -244,8 +231,6 @@ enum AccionEvaluacion {
   ELIMINADA
 }
 
-// Bitácora de cambios sobre evaluaciones. Sin FK a propósito: el registro
-// debe sobrevivir aunque la evaluación original se elimine.
 model AuditoriaEvaluacion {
   id Int @id @default(autoincrement())
 
@@ -256,7 +241,7 @@ model AuditoriaEvaluacion {
   accion          AccionEvaluacion
   motivo          String?          @db.Text
   adminId         Int?
-  datosAnteriores Json             // copia de la evaluación antes del cambio
+  datosAnteriores Json
 
   createdAt DateTime @default(now())
 
@@ -287,10 +272,6 @@ enum TipoCuenta {
   AHORRO
 }
 
-// =====================================================================
-// GESTIÓN DE EQUIPOS
-// =====================================================================
-
 enum CategoriaEquipo {
   SONIDO
   ILUMINACION
@@ -306,8 +287,6 @@ enum EstadoReserva {
   DEVUELTO
 }
 
-// Catálogo de equipos. El stock se lleva por cantidad (ej. "12 parlantes").
-// cantidadMantencion = unidades fuera de servicio (dañadas): no cuentan como disponibles.
 model Equipo {
   id Int @id @default(autoincrement())
 
@@ -329,7 +308,6 @@ model Equipo {
   @@map("equipos")
 }
 
-// Equipo reservado para un evento. Un equipo aparece una sola vez por evento.
 model ReservaEquipo {
   id Int @id @default(autoincrement())
 
@@ -339,14 +317,12 @@ model ReservaEquipo {
   eventoId Int
   evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
-  // Trabajador a cargo del equipo (debe estar asignado al evento). Opcional.
   responsableId Int?
   responsable   Trabajador? @relation(fields: [responsableId], references: [id], onDelete: SetNull)
 
   cantidad Int
   estado   EstadoReserva @default(RESERVADO)
 
-  // Se completan al registrar la devolución.
   cantidadDanada   Int     @default(0)
   cantidadFaltante Int     @default(0)
   observacion      String? @db.VarChar(255)

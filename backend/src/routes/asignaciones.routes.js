@@ -5,16 +5,12 @@ import * as asignacionesController from "../controllers/asignaciones.controller.
 
 const router = Router();
 
-// POST /api/asignaciones   { trabajadorId, eventoId, rol? }
 router.post("/", validate(crearAsignacionSchema), asignacionesController.crear);
 
-// GET /api/asignaciones/evento/:eventoId
 router.get("/evento/:eventoId", asignacionesController.listarPorEvento);
 
-// GET /api/asignaciones/trabajador/:trabajadorId
 router.get("/trabajador/:trabajadorId", asignacionesController.listarPorTrabajador);
 
-// DELETE /api/asignaciones/:id
 router.delete("/:id", asignacionesController.eliminar);
 
 export default router;

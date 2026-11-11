@@ -111,7 +111,7 @@ function InventarioEquipos() {
   const [equipos, setEquipos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [editando, setEditando] = useState(null); // null | 'nuevo' | equipo
+  const [editando, setEditando] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [version, setVersion] = useState(0);
 

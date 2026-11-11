@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
-import prismaApp from '../src/config/prisma.js'; // cliente que usan los servicios de la app
+import prismaApp from '../src/config/prisma.js';
 import { calcularDv } from '../src/utils/rut.js';
 import { asignarTrabajador } from '../src/services/asignacion.service.js';
 import { crearEvaluacion, actualizarEvaluacion } from '../src/services/evaluacion.service.js';
@@ -15,29 +15,16 @@ import {
   esRolTecnico,
 } from '../src/schemas/evaluacion.schema.js';
 
-
 const ROLES = [
   'ADMINISTRADOR', 'COORDINADOR', 'TECNICO_SONIDO', 'TECNICO_ILUMINACION', 'MONTAJISTA'];
 
-
-
 const prisma = new PrismaClient();
 
-// =====================================================================
-// DATOS DE DEMOSTRACIÓN DEL MÓDULO DE PERSONAL
-// (trabajadores, asignaciones, evaluaciones, incidentes y bitácora)
-//
-// Se crean al final de este seed, reutilizando los clientes y lugares que acaba de crear arriba.
-// Son repetibles: antes de crearlos se borran SOLO los trabajadores de demo de Personal
-// (los trabajadores con correo @demo.nes.cl; los eventos ya los borra el seed de arriba).
-// Usan los mismos servicios que la aplicación, así que cumplen todas las reglas de negocio.
-// =====================================================================
 const DOMINIO_DEMO = '@demo.nes.cl';
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 const conDv = (cuerpo) => `${cuerpo}-${calcularDv(String(cuerpo))}`;
 
-// perfil: excelente | regular | bajo (define qué notas recibe en las evaluaciones)
 const TRABAJADORES_DEMO = [
   { clave: 'camila', nombre: 'Camila Rojas Pizarro', rut: 98000001, rol: 'GARZON', comuna: 'Concepción', anios: 4, dias: ['VIERNES', 'SABADO', 'DOMINGO'], turno: 'AMBOS', talla: 'S', banco: 'BancoEstado', tipoCuenta: 'CUENTA_RUT', cuenta: '98000001', telefono: '+56981234501', perfil: 'excelente' },
   { clave: 'matias', nombre: 'Matías Fuentes Lagos', rut: 98000002, rol: 'TECNICO_SONIDO', comuna: 'Talcahuano', anios: 8, dias: ['JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'], turno: 'NOCTURNO', talla: 'L', banco: 'Banco de Chile', tipoCuenta: 'CORRIENTE', cuenta: '123456789', telefono: '+56981234502', perfil: 'excelente' },
@@ -47,11 +34,9 @@ const TRABAJADORES_DEMO = [
   { clave: 'valentina', nombre: 'Valentina Mora Henríquez', rut: 98000006, rol: 'ANIMADOR', comuna: 'Hualpén', anios: 5, dias: ['VIERNES', 'SABADO', 'DOMINGO'], turno: 'AMBOS', talla: 'M', banco: 'Scotiabank', tipoCuenta: 'AHORRO', cuenta: '40506070', telefono: '+56981234506', perfil: 'excelente' },
   { clave: 'sebastian', nombre: 'Sebastián Vera Contreras', rut: 98000007, rol: 'SEGURIDAD', comuna: 'Coronel', anios: 3, dias: ['SABADO', 'DOMINGO'], turno: 'NOCTURNO', talla: 'XL', banco: 'BancoEstado', tipoCuenta: 'VISTA', cuenta: '66778899', telefono: '+56981234507', perfil: 'regular' },
   { clave: 'constanza', nombre: 'Constanza Díaz Ortiz', rut: 98000008, rol: 'ASEO_LOGISTICA', comuna: 'Concepción', anios: 2, dias: ['LUNES', 'MARTES', 'MIERCOLES'], turno: 'DIURNO', talla: 'S', banco: 'Banco Falabella', tipoCuenta: 'VISTA', cuenta: '30405060', telefono: '+56981234508', perfil: 'regular' },
-  // Sin historial: sirve para probar que un trabajador sin eventos se puede eliminar de verdad.
   { clave: 'nicolas', nombre: 'Nicolás Peña Valdés', rut: 98000009, rol: 'GARZON', comuna: 'Lota', anios: 0, dias: ['SABADO'], turno: 'DIURNO', talla: 'M', banco: null, tipoCuenta: null, cuenta: null, telefono: '+56981234509', perfil: 'regular' },
 ];
 
-// dias: desfase respecto a hoy (negativo = ya ocurrió, positivo = aún no ocurre)
 const EVENTOS_DEMO = [
   { clave: 'boda', nombre: 'Matrimonio Alvarado-Reyes', dias: -30, invitados: 180, presupuesto: 4200000 },
   { clave: 'gala', nombre: 'Gala de aniversario Constructora Sur', dias: -20, invitados: 250, presupuesto: 6800000 },
@@ -59,7 +44,6 @@ const EVENTOS_DEMO = [
   { clave: 'proximo', nombre: 'Cumpleaños 40 años Rodrigo', dias: 15, invitados: 90, presupuesto: 1900000 },
 ];
 
-// Quién trabaja en cada evento (cada uno con su cargo principal). El evento 'proximo' aún no ocurre.
 const PLAN_DEMO = [
   { evento: 'boda', equipo: ['camila', 'matias', 'javiera', 'diego', 'sebastian'] },
   { evento: 'gala', equipo: ['camila', 'matias', 'felipe', 'valentina', 'constanza'] },
@@ -79,14 +63,13 @@ function mediodiaUTC(desfaseDias) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12));
 }
 
-// Arma una evaluación válida (con comentarios en las notas 1, 2 y 5) y la valida con el mismo schema de la API.
 function armarEvaluacion(trabajadorId, eventoId, rol, perfil, variante) {
   const datos = { trabajadorId, eventoId, rolEvento: rol };
   const criterios = esRolTecnico(rol) ? [...SUBINDICADORES_BASE, ...SUBINDICADORES_TECNICOS] : SUBINDICADORES_BASE;
 
   criterios.forEach(([campo, campoComentario], i) => {
     let nota = NOTA_BASE[perfil] + ((i + variante) % 3 === 0 ? 1 : 0);
-    if (perfil === 'bajo' && i === 0) nota = 1; // llegó muy tarde
+    if (perfil === 'bajo' && i === 0) nota = 1;
     datos[campo] = nota;
     if (COMENTARIOS_NOTA[nota]) datos[campoComentario] = COMENTARIOS_NOTA[nota];
   });
@@ -97,7 +80,6 @@ async function limpiarDatosDemoPersonal() {
   const trabajadores = await prisma.trabajador.findMany({ where: { email: { endsWith: DOMINIO_DEMO } }, select: { id: true } });
   const idsTrabajadores = trabajadores.map((t) => t.id);
 
-  // Orden importante: primero lo que depende de trabajadores y eventos.
   await prisma.auditoriaEvaluacion.deleteMany({ where: { trabajadorId: { in: idsTrabajadores } } });
   await prisma.incidente.deleteMany({ where: { trabajadorId: { in: idsTrabajadores } } });
   await prisma.evaluacion.deleteMany({ where: { trabajadorId: { in: idsTrabajadores } } });
@@ -188,7 +170,7 @@ async function seedPersonal(clienteId, lugarId) {
     eventoId: eventosDemo.corporativo.id,
     tipo: 'FALTA_GRAVE',
     motivo: 'Abandonó su puesto durante el evento sin avisar al encargado.',
-  }); // bloquea al trabajador de inmediato
+  });
 
   console.log('=> [Personal] Dando de baja a un trabajador (queda inactivo y conserva su historial)...');
   await prisma.trabajador.update({ where: { id: trabajadores.constanza.id }, data: { activo: false } });
@@ -204,13 +186,6 @@ async function seedPersonal(clienteId, lugarId) {
   return { trabajadores, eventosDemo };
 }
 
-// =====================================================================
-// DATOS DE DEMOSTRACIÓN DEL MÓDULO DE EQUIPOS
-// (inventario, reservas por evento, entregas y devoluciones con daños)
-//
-// Usa los trabajadores y eventos de demo de Personal. Los equipos de demo se reconocen por su nombre:
-// al repetir el seed se borran y se vuelven a crear (sus reservas ya se borraron junto con los eventos).
-// =====================================================================
 const EQUIPOS_DEMO = [
   { clave: 'parlante', nombre: 'Parlante activo 15"', categoria: 'SONIDO', total: 12, precio: 25000, descripcion: 'Con trípode y cable XLR' },
   { clave: 'consola', nombre: 'Consola mezcladora 16 canales', categoria: 'SONIDO', total: 2, precio: 60000 },
@@ -221,8 +196,6 @@ const EQUIPOS_DEMO = [
   { clave: 'carpa', nombre: 'Carpa 6×6 m', categoria: 'ESTRUCTURA', total: 5, precio: 80000 },
 ];
 
-// Eventos que ya ocurrieron: se reservan directo en la base (el sistema no deja reservar eventos finalizados),
-// y luego se registran la entrega y la devolución con los servicios reales, que ajustan el stock.
 const USO_PASADO_DEMO = [
   {
     evento: 'boda',
@@ -245,12 +218,11 @@ const USO_PASADO_DEMO = [
     evento: 'corporativo',
     items: [
       { equipo: 'pantalla', cantidad: 1, devolucion: {} },
-      { equipo: 'consola', cantidad: 1, devolucion: null }, // entregada y todavía sin devolver
+      { equipo: 'consola', cantidad: 1, devolucion: null },
     ],
   },
 ];
 
-// Evento futuro: se reserva con el servicio real (valida stock, fechas y responsable).
 const USO_FUTURO_DEMO = [
   { evento: 'proximo', equipo: 'parlante', cantidad: 10, responsable: 'matias' },
   { evento: 'proximo', equipo: 'cabezal', cantidad: 8, responsable: 'felipe' },
@@ -312,8 +284,6 @@ async function seedEquipos({ trabajadores, eventosDemo }) {
     console.log(`   ${e.nombre.padEnd(32)} total: ${String(e.cantidadTotal).padStart(3)}  en mantención: ${e.cantidadMantencion}`);
   }
 }
-// =====================================================================
-// =====================================================================
 
 async function main() {
   console.log('Limpiando datos anteriores...');

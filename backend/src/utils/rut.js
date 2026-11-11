@@ -1,13 +1,9 @@
-// Utilidades para el RUT chileno.
-
-// "12.345.678-5", "12345678-5" o "123456785" -> "12345678-5"
 export function normalizarRut(valor) {
   const limpio = String(valor).replace(/[.\s]/g, "").toUpperCase();
   if (limpio.includes("-")) return limpio;
   return limpio.length > 1 ? `${limpio.slice(0, -1)}-${limpio.slice(-1)}` : limpio;
 }
 
-// Dígito verificador por módulo 11.
 export function calcularDv(cuerpo) {
   let suma = 0;
   let factor = 2;

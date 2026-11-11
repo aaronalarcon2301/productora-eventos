@@ -1,7 +1,5 @@
 import { API_URL } from './config';
 
-// Wrapper de fetch para JSON. Lanza Error con el mensaje que devuelve el backend
-// (incluye el detalle de las validaciones de Zod) para mostrarlo tal cual en pantalla.
 export async function apiFetch(ruta, { method = 'GET', body } = {}) {
   let res;
   try {
