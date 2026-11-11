@@ -4,7 +4,6 @@ import CancelacionEvento from './CancelacionEvento';
 import FinalizacionEvento from './FinalizacionEvento';
 
 function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
-  // Agregamos clienteNombre y lugarNombre para controlar lo que se escribe en el input de texto
   const [formData, setFormData] = useState({ 
     nombre: '', 
     fecha: '', 
@@ -19,21 +18,28 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
     e.preventDefault();
     try {
       const res = await fetch(`${API_URL}/eventos`, {
-        nombre: formData.nombre,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: formData.nombre,
           fecha: formData.fecha,
-          presupuesto: Number(formData.presupuesto),
+          // Convertimos el presupuesto con puntos a un número limpio para la BD
+          presupuesto: Number(String(formData.presupuesto).replace(/\./g, '')),
           clienteId: formData.clienteId ? Number(formData.clienteId) : null,
           clienteNombre: formData.clienteNombre,
           lugarId: formData.lugarId ? Number(formData.lugarId) : null,
           lugarNombre: formData.lugarNombre
+        })
       });
 
       if (!res.ok) throw new Error('Error al crear el evento');
       
-      const nuevoEvento = await res.json();
-      onGuardar(nuevoEvento); 
+      const respuestaBackend = await res.json();
+      const eventoFinal = respuestaBackend.data || respuestaBackend.nuevoEvento || respuestaBackend.evento || respuestaBackend;
+      
+      onGuardar(eventoFinal); 
     } catch (error) {
-      alert('Error al guardar el evento. Verifica la conexión con el servidor o asegúrate de haber seleccionado un cliente/lugar válido de la lista.');
+      alert('Error al guardar el evento. Verifica la conexión con el servidor o asegúrate de haber seleccionado un cliente/lugar válido.');
     }
   };
 
@@ -53,12 +59,29 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
             <input type="date" required value={formData.fecha} onChange={e => setFormData({...formData, fecha: e.target.value})} />
           </div>
           
+          {/* Campo Presupuesto único y con formateo de puntos */}
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Presupuesto ($)</label>
-            <input type="number" required min="1" value={formData.presupuesto} onChange={e => setFormData({...formData, presupuesto: e.target.value})} placeholder="Ej: 500000" />
+            <input 
+              type="text" 
+              required 
+              value={formData.presupuesto} 
+              placeholder="Ej: 500.000"
+              onChange={(e) => {
+                const valorCrudo = e.target.value.replace(/\D/g, '');
+                
+                if (!valorCrudo) {
+                  setFormData({...formData, presupuesto: ''});
+                  return;
+                }
+                
+                const valorFormateado = new Intl.NumberFormat('es-CL').format(parseInt(valorCrudo, 10));
+                setFormData({...formData, presupuesto: valorFormateado});
+              }} 
+            />
           </div>
           
-          {/* Campo Cliente modificado con datalist */}
+          {/* Campo Cliente */}
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Cliente</label>
             <input 
@@ -82,7 +105,7 @@ function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
             </datalist>
           </div>
           
-          {/* Campo Lugar modificado con datalist */}
+          {/* Campo Lugar */}
           <div>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Lugar</label>
             <input 
@@ -125,14 +148,20 @@ function EventoCatalogo() {
   
   const [mostrarModal, setMostrarModal] = useState(false);
 
+  const cargarEventos = () => {
+    const params = new URLSearchParams(Object.entries(filtros).filter(([_, v]) => v));
+    fetch(`${API_URL}/eventos?${params}`)
+      .then(res => res.json())
+      .then(setEventos);
+  };
+
   useEffect(() => {
     Promise.all([fetch(`${API_URL}/clientes`), fetch(`${API_URL}/lugares`)])
       .then(async ([resC, resL]) => setDataExtra({ clientes: await resC.json(), lugares: await resL.json() }));
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(Object.entries(filtros).filter(([_, v]) => v));
-    fetch(`${API_URL}/eventos?${params}`).then(res => res.json()).then(setEventos);
+    cargarEventos();
   }, [filtros]);
 
   const eliminarEvento = async (evento, e) => {
@@ -231,8 +260,15 @@ function EventoCatalogo() {
           lugares={dataExtra.lugares}
           onCancelar={() => setMostrarModal(false)}
           onGuardar={(nuevoEvento) => {
-            setEventos([...eventos, nuevoEvento]); 
-            setMostrarModal(false); 
+            setMostrarModal(false);
+            
+            console.log("Lo que el backend nos respondió al guardar:", nuevoEvento);
+            
+            if (nuevoEvento && nuevoEvento.id) {
+              setEventos(eventosPrevios => [...eventosPrevios, nuevoEvento]);
+            } else {
+              cargarEventos();
+            }
           }}
         />
       )}

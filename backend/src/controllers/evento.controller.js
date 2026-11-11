@@ -21,39 +21,43 @@ export const getEventoById = async (req, res, next) => {
 
 export const createEvento = async (req, res, next) => {
   try {
+    // Ahora extraemos también los nombres tipeados desde req.body
     const { nombre, fecha, presupuesto, clienteId, clienteNombre, lugarId, lugarNombre } = req.body;
 
+    // 1. Si no viene clienteId pero sí escribieron un nombre, creamos el cliente en la BD
     let idClienteFinal = clienteId;
     if (!idClienteFinal && clienteNombre) {
       const nuevoCliente = await prisma.cliente.create({
         data: {
           nombre: clienteNombre,
-          email: 'pendiente@correo.com', 
+          email: 'pendiente@correo.com', // Datos por defecto para que Prisma no falle
           telefono: 'Pendiente'
         }
       });
       idClienteFinal = nuevoCliente.id;
     }
 
+    // 2. Si no viene lugarId pero sí escribieron un nombre, creamos el lugar en la BD
     let idLugarFinal = lugarId;
     if (!idLugarFinal && lugarNombre) {
       const nuevoLugar = await prisma.lugar.create({
         data: {
           nombre: lugarNombre,
-          ubicacion: 'Por definir', 
-          capacidad: 0              
+          ubicacion: 'Por definir', // Datos por defecto
+          capacidad: 0
         }
       });
       idLugarFinal = nuevoLugar.id;
     }
 
-      const nuevoEvento = await prisma.evento.create({
+    // 3. Creamos el evento usando los IDs definitivos (ya sean los que existían o los recién creados)
+    const nuevoEvento = await prisma.evento.create({
       data: {
         nombre,
-        fecha: new Date(fecha), 
+        fecha: new Date(fecha),
         presupuesto,
         clienteId: idClienteFinal,
-        lugarId: idLugarFinal,
+        lugarId: idLugarFinal
       },
       include: {
         cliente: true,
