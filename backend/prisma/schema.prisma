@@ -10,6 +10,7 @@ datasource db {
 model Cliente {
   id        Int      @id @default(autoincrement())
   nombre    String   @db.VarChar(100)
+  rut       String?  @unique @db.VarChar(12)
   email     String?  @unique @db.VarChar(120)
   telefono  String?  @db.VarChar(30)
   createdAt DateTime @default(now())

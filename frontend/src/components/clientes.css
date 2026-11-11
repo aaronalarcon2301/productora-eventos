@@ -1,0 +1,24 @@
+.tarjeta-datos dd.falta { color: var(--cue); }
+.avatar.grande { width: 64px; height: 64px; font-size: 1.5rem; }
+
+.ficha-cab {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 20px;
+  background: var(--riser); border: 1px solid var(--hairline); border-radius: 12px; padding: 24px; margin-bottom: 22px;
+}
+.ficha-cab .ficha-titulo { flex: 1 1 260px; min-width: 0; }
+.ficha-cab h2 { margin: 0; border: none; padding: 0; font-size: 1.8rem; }
+.ficha-contacto { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 8px; color: var(--ink-dim); font-size: 14px; }
+.ficha-contacto .falta { color: var(--cue); }
+.ficha-titulo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+
+.volver { background: none; border: none; color: var(--ink-dim); cursor: pointer; font-size: 14px; padding: 8px 0; margin-bottom: 8px; }
+.volver:hover { color: var(--ink); }
+
+.eventos-cliente { background: var(--riser); border: 1px solid var(--hairline); border-radius: 12px; padding: 24px; }
+.eventos-cliente h3 { margin: 0 0 4px; font-family: var(--font-body); font-size: 1.1rem; letter-spacing: 0; }
+.evento-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 16px 0; border-top: 1px solid var(--hairline); }
+.evento-fila:first-of-type { margin-top: 12px; }
+.evento-fila .evento-info { flex: 1 1 260px; min-width: 0; }
+.evento-fila .evento-info strong { display: block; font-size: 15px; }
+.evento-fila .evento-info span { color: var(--ink-dim); font-size: 13px; }
+.evento-fila .evento-monto { min-width: 90px; text-align: right; color: var(--ink); }
