@@ -304,10 +304,11 @@ async function main() {
 
   console.log('=> Creando clientes...');
   const clientes = await Promise.all(
-    Array.from({ length: 6 }).map(() =>
+    Array.from({ length: 6 }).map((_, i) =>
       prisma.cliente.create({
         data: {
           nombre: faker.person.fullName(),
+          rut: conDv(97000001 + i),
           email: faker.internet.email(),
           telefono: faker.phone.number(),
         },
