@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { API_URL } from '../api/config';
+import { apiFetch } from '../api/apiFetch';
 
 function ConfiguracionPoliticas() {
   const [politicas, setPoliticas] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/politicas`)
-      .then(res => res.json())
-      .then(setPoliticas);
-  }, []);
+  apiFetch('/politicas')
+    .then(setPoliticas)
+    .catch(error => console.error(error.message));
+}, []);
 
   const handleChange = (id, campo, valor) => {
     setPoliticas(politicas.map(p => 
@@ -17,23 +17,23 @@ function ConfiguracionPoliticas() {
   };
 
   const guardarCambios = async (p, index) => {
-    try {
-      const esUltimo = index === politicas.length - 1;
+  try {
+    const esUltimo = index === politicas.length - 1;
 
-      const res = await fetch(`${API_URL}/politicas/${p.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          porcentaje: p.porcentaje,
-          diasDesde: p.diasDesde,
-          diasHasta: esUltimo ? null : p.diasHasta
-        })
-      });
-      if (res.ok) alert('Política actualizada correctamente');
-    } catch (error) {
-      alert('Error al guardar los cambios');
-    }
-  };
+    await apiFetch(`/politicas/${p.id}`, {
+      method: 'PUT',
+      body: {
+        porcentaje: Number(p.porcentaje),
+        diasDesde: Number(p.diasDesde),
+        diasHasta: esUltimo ? null : Number(p.diasHasta)
+      }
+    });
+
+    alert('Política actualizada correctamente');
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
   return (
     <section className="panel" style={{ maxWidth: '750px' }}>

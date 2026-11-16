@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { API_URL } from '../api/config';
+import { apiFetch } from '../api/apiFetch';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -7,10 +7,6 @@ const formatoPesos = (n) => `$${Number(n).toLocaleString('es-CL')}`;
 const formatoFecha = (f) => new Date(f).toLocaleDateString('es-CL', { timeZone: 'UTC' });
 const hoy = () => new Date().toISOString().slice(0, 10);
 
-// Panel del usuario administrativo para un evento:
-//  - Si aún no tiene abono  -> permite registrarlo (lo deja "confirmado")
-//  - Si está confirmado     -> permite cancelarlo y ver el comprobante de devolución
-//  - Si está cancelado      -> muestra el resultado
 function CancelacionEvento({ evento, onActualizado }) {
   const [fechaPago, setFechaPago] = useState(hoy());
   const [montoAbono, setMontoAbono] = useState(
@@ -20,38 +16,41 @@ function CancelacionEvento({ evento, onActualizado }) {
   const [comprobante, setComprobante] = useState(null);
   const [error, setError] = useState(null);
 
-  const leerError = (data) =>
-    data.detalles ? data.detalles.map((d) => `${d.campo}: ${d.mensaje}`).join(' | ') : data.error;
-
   const registrarAbono = async (e) => {
-    e.preventDefault();
-    setError(null);
+  e.preventDefault();
+  setError(null);
 
-    const res = await fetch(`${API_URL}/eventos/${evento.id}`, {
+  try {
+    const data = await apiFetch(`/eventos/${evento.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmado: true, fechaPago, montoAbono: Number(montoAbono) }),
+      body: {
+        confirmado: true,
+        fechaPago,
+        montoAbono: Number(montoAbono)
+      }
     });
-    const data = await res.json();
 
-    if (!res.ok) return setError(leerError(data));
     onActualizado({ ...evento, ...data });
-  };
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
-  const cancelarEvento = async () => {
-    setError(null);
+const cancelarEvento = async () => {
+  setError(null);
 
-    const res = await fetch(`${API_URL}/eventos/${evento.id}/cancelar`, {
+  try {
+    const data = await apiFetch(`/eventos/${evento.id}/cancelar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fechaSolicitud }),
+      body: { fechaSolicitud }
     });
-    const data = await res.json();
 
-    if (!res.ok) return setError(leerError(data));
     setComprobante(data.comprobante);
     onActualizado(data.evento);
-  };
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
   const generarPDF = () => {
     const doc = new jsPDF();

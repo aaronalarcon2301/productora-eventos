@@ -1,297 +1,576 @@
-import { useState, useEffect } from 'react';
-import { API_URL } from '../api/config';
+import { useCallback, useEffect, useState } from 'react';
+
+import { apiFetch } from '../api/apiFetch';
+
 import CancelacionEvento from './CancelacionEvento';
 import FinalizacionEvento from './FinalizacionEvento';
+import CotizarEvento from './CotizarEvento';
 
-function FormularioNuevoEvento({ clientes, lugares, onGuardar, onCancelar }) {
-  const [formData, setFormData] = useState({ 
-    nombre: '', 
-    fecha: '', 
-    numInvitados: '',
-    presupuesto: '', 
-    clienteId: '', 
-    lugarId: '',
-    clienteNombre: '',
-    lugarNombre: ''
+const pesos = (valor) => {
+  const numero = Number(valor ?? 0);
+
+  return `$${Number.isFinite(numero)
+    ? numero.toLocaleString('es-CL')
+    : '0'}`;
+};
+
+const fechaCL = (valor) => {
+  if (!valor) return 'Sin fecha';
+
+  const fecha = new Date(valor);
+
+  if (Number.isNaN(fecha.getTime())) {
+    return 'Fecha inválida';
+  }
+
+  return fecha.toLocaleDateString('es-CL', {
+    timeZone: 'UTC'
   });
+};
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`${API_URL}/eventos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          fecha: formData.fecha,
-          numInvitados: Number(formData.numInvitados),
-          // Convertimos el presupuesto con puntos a un número limpio para la BD
-          presupuesto: Number(String(formData.presupuesto).replace(/\./g, '')),
-          clienteId: formData.clienteId ? Number(formData.clienteId) : null,
-          clienteNombre: formData.clienteNombre,
-          lugarId: formData.lugarId ? Number(formData.lugarId) : null,
-          lugarNombre: formData.lugarNombre
-        })
-      });
+const estadoClase = (estado) => {
+  switch (estado) {
+    case 'APROBADO':
+      return 'confirmed';
 
-      if (!res.ok) {
-        const cuerpo = await res.json().catch(() => ({}));
-        const detalle = cuerpo.detalles?.map((d) => d.mensaje).join(' · ');
-        throw new Error(detalle || cuerpo.error || 'Error al crear el evento');
-      }
-      
-      const respuestaBackend = await res.json();
-      const eventoFinal = respuestaBackend.data || respuestaBackend.nuevoEvento || respuestaBackend.evento || respuestaBackend;
-      
-      onGuardar(eventoFinal); 
-    } catch (error) {
-      alert(`No se pudo guardar el evento: ${error.message}`);
-    }
-  };
+    case 'RECHAZADO':
+      return 'cancelled';
 
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-      <div className="panel" style={{ width: '100%', maxWidth: '500px', margin: '20px' }}>
-        <h2 style={{ marginTop: 0 }}>Registrar Nuevo Evento</h2>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Nombre del Evento</label>
-            <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej: Cena de Aniversario" />
-          </div>
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Fecha</label>
-            <input type="date" required value={formData.fecha} onChange={e => setFormData({...formData, fecha: e.target.value})} />
-          </div>
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Número de invitados</label>
-            <input
-              type="number"
-              required
-              min="1"
-              value={formData.numInvitados}
-              placeholder="Ej: 80"
-              onChange={e => setFormData({...formData, numInvitados: e.target.value})}
-            />
-          </div>
+    default:
+      return 'pending';
+  }
+};
 
-          {/* Campo Presupuesto único y con formateo de puntos */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Presupuesto ($)</label>
-            <input 
-              type="text" 
-              required 
-              value={formData.presupuesto} 
-              placeholder="Ej: 500.000"
-              onChange={(e) => {
-                const valorCrudo = e.target.value.replace(/\D/g, '');
-                
-                if (!valorCrudo) {
-                  setFormData({...formData, presupuesto: ''});
-                  return;
-                }
-                
-                const valorFormateado = new Intl.NumberFormat('es-CL').format(parseInt(valorCrudo, 10));
-                setFormData({...formData, presupuesto: valorFormateado});
-              }} 
-            />
-          </div>
-          
-          {/* Campo Cliente */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Cliente</label>
-            <input 
-              required
-              type="text" 
-              list="lista-clientes" 
-              placeholder="Agregue o seleccione un cliente..."
-              value={formData.clienteNombre}
-              onChange={(e) => {
-                const nombreTipeado = e.target.value;
-                const clienteEncontrado = clientes.find(c => c.nombre === nombreTipeado);
-                setFormData({ 
-                  ...formData, 
-                  clienteNombre: nombreTipeado,
-                  clienteId: clienteEncontrado ? clienteEncontrado.id : '' 
-                });
-              }}
-            />
-            <datalist id="lista-clientes">
-              {clientes.map(c => <option key={c.id} value={c.nombre} />)}
-            </datalist>
-          </div>
-          
-          {/* Campo Lugar */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ink-dim)' }}>Lugar</label>
-            <input 
-              required
-              type="text" 
-              list="lista-lugares" 
-              placeholder="Agregue o seleccione un lugar..."
-              value={formData.lugarNombre}
-              onChange={(e) => {
-                const nombreTipeado = e.target.value;
-                const lugarEncontrado = lugares.find(l => l.nombre === nombreTipeado);
-                setFormData({ 
-                  ...formData, 
-                  lugarNombre: nombreTipeado,
-                  lugarId: lugarEncontrado ? lugarEncontrado.id : '' 
-                });
-              }}
-            />
-            <datalist id="lista-lugares">
-              {lugares.map(l => <option key={l.id} value={l.nombre} />)}
-            </datalist>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <button type="button" className="btn btn-ghost" onClick={onCancelar}>Cancelar</button>
-            <button type="submit" className="btn">Guardar Evento</button>
-          </div>
-          
-        </form>
-      </div>
-    </div>
-  );
-}
+const estadoTexto = (estado) => {
+  switch (estado) {
+    case 'APROBADO':
+      return 'Aprobado';
 
-function EventoCatalogo() {
+    case 'RECHAZADO':
+      return 'Rechazado';
+
+    default:
+      return 'Pendiente';
+  }
+};
+
+export default function EventoCatalogo({ rol, setVista }) {
+  const esGerente = rol === 'GERENTE';
+
   const [eventos, setEventos] = useState([]);
   const [seleccionado, setSeleccionado] = useState(null);
-  const [filtros, setFiltros] = useState({ clienteId: '', lugarId: '' });
-  const [dataExtra, setDataExtra] = useState({ clientes: [], lugares: [] });
-  
+
+  const [catalogos, setCatalogos] = useState({
+    clientes: [],
+    lugares: []
+  });
+
+  const [filtros, setFiltros] = useState({
+    clienteId: '',
+    lugarId: ''
+  });
+
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [cargandoEventos, setCargandoEventos] = useState(true);
+  const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
 
-  const cargarEventos = () => {
-    const params = new URLSearchParams(Object.entries(filtros).filter(([_, v]) => v));
-    fetch(`${API_URL}/eventos?${params}`)
-      .then(res => res.json())
-      .then(setEventos);
-  };
+  const [errorEventos, setErrorEventos] = useState('');
+  const [errorCatalogos, setErrorCatalogos] = useState('');
+  const [mensaje, setMensaje] = useState('');
 
-  useEffect(() => {
-    Promise.all([fetch(`${API_URL}/clientes`), fetch(`${API_URL}/lugares`)])
-      .then(async ([resC, resL]) => setDataExtra({ clientes: await resC.json(), lugares: await resL.json() }));
+  const cargarEventos = useCallback(async () => {
+    setCargandoEventos(true);
+    setErrorEventos('');
+
+    try {
+      const params = new URLSearchParams();
+
+      if (filtros.clienteId) {
+        params.set('clienteId', filtros.clienteId);
+      }
+
+      if (filtros.lugarId) {
+        params.set('lugarId', filtros.lugarId);
+      }
+
+      const query = params.toString();
+
+      const ruta = query
+        ? `/eventos?${query}`
+        : '/eventos';
+
+      const respuesta = await apiFetch(ruta);
+
+      if (!Array.isArray(respuesta)) {
+        throw new Error(
+          'El servidor no devolvió una lista válida de eventos.'
+        );
+      }
+
+      setEventos(respuesta);
+
+    } catch (error) {
+      console.error('Error al cargar eventos:', error);
+
+      setEventos([]);
+
+      setErrorEventos(
+        error.message || 'No se pudieron cargar los eventos.'
+      );
+
+    } finally {
+      setCargandoEventos(false);
+    }
+  }, [filtros.clienteId, filtros.lugarId]);
+
+  const cargarCatalogos = useCallback(async () => {
+    setCargandoCatalogos(true);
+    setErrorCatalogos('');
+
+    try {
+      const respuesta = await apiFetch('/catalogos');
+
+      const clientes = Array.isArray(respuesta?.clientes)
+        ? respuesta.clientes
+        : [];
+
+      const lugares = Array.isArray(respuesta?.lugares)
+        ? respuesta.lugares
+        : [];
+
+      setCatalogos({
+        clientes,
+        lugares
+      });
+
+    } catch (error) {
+      console.error('Error al cargar catálogos:', error);
+
+      setCatalogos({
+        clientes: [],
+        lugares: []
+      });
+
+      setErrorCatalogos(
+        error.message ||
+        'No se pudieron cargar los clientes y lugares.'
+      );
+
+    } finally {
+      setCargandoCatalogos(false);
+    }
   }, []);
 
   useEffect(() => {
+    cargarCatalogos();
+  }, [cargarCatalogos]);
+
+  useEffect(() => {
     cargarEventos();
-  }, [filtros]);
+  }, [cargarEventos]);
 
-  const eliminarEvento = async (evento, e) => {
-    e.stopPropagation();
+  const actualizarEvento = (eventoActualizado) => {
+    if (!eventoActualizado?.id) return;
 
-    if (!evento.cancelado){
-      alert("No se puede eliminar un evento que no está cancelado. Por favor, cancele el evento primero.");
+    setSeleccionado(anterior => {
+      if (!anterior) return null;
+
+      if (anterior.id !== eventoActualizado.id) {
+        return anterior;
+      }
+
+      return {
+        ...anterior,
+        ...eventoActualizado
+      };
+    });
+
+    setEventos(anteriores => {
+      if (!Array.isArray(anteriores)) return [];
+
+      return anteriores.map(evento =>
+        evento.id === eventoActualizado.id
+          ? {
+              ...evento,
+              ...eventoActualizado
+            }
+          : evento
+      );
+    });
+  };
+
+  const eliminarEvento = async (evento) => {
+    if (!esGerente) {
+      setErrorEventos(
+        'Solo el gerente puede eliminar eventos.'
+      );
       return;
     }
 
-    const confirmado = window.confirm(`¿Está seguro de que desea eliminar el evento "${evento.nombre}"? Esta acción no se puede deshacer.`);
-    
-    if (confirmado) {
-      try {
-        const res = await fetch(`${API_URL}/eventos/${evento.id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Error al eliminar el evento');
-        setEventos(eventos.filter(ev => ev.id !== evento.id));
-        setSeleccionado(null);
-      } catch (error) {
-        alert('Error al eliminar el evento. Por favor, inténtelo de nuevo más tarde.');
-      }
+    if (!evento.cancelado) {
+      window.alert(
+        'Primero debes cancelar el evento para eliminarlo.'
+      );
+      return;
     }
+
+    const confirmar = window.confirm(
+      `¿Estás seguro de eliminar "${evento.nombre}"?`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      setErrorEventos('');
+
+      await apiFetch(`/eventos/${evento.id}`, {
+        method: 'DELETE'
+      });
+
+      setSeleccionado(null);
+
+      setMensaje('Evento eliminado correctamente.');
+
+      await cargarEventos();
+
+    } catch (error) {
+      console.error('Error al eliminar evento:', error);
+
+      setErrorEventos(error.message);
+    }
+  };
+
+  const cotizacionGuardada = async () => {
+    setMostrarModal(false);
+    setSeleccionado(null);
+
+    setMensaje(
+      'Cotización enviada correctamente. ' +
+      'El gerente debe revisar y aprobar el presupuesto.'
+    );
+
+    await cargarEventos();
+  };
+
+  const actualizarTodo = async () => {
+    await Promise.all([
+      cargarEventos(),
+      cargarCatalogos()
+    ]);
   };
 
   return (
     <div>
+
+      <header className="page-heading">
+        <div>
+          <h1>
+            {esGerente
+              ? 'Listado de eventos'
+              : 'Cotizaciones y eventos'}
+          </h1>
+
+          <p>
+            {esGerente
+              ? 'Consulta y administra los eventos registrados.'
+              : 'Prepara cotizaciones y consulta los eventos aprobados.'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={actualizarTodo}
+          disabled={cargandoEventos || cargandoCatalogos}
+        >
+          {cargandoEventos
+            ? 'Actualizando...'
+            : 'Actualizar'}
+        </button>
+      </header>
+
+      {errorEventos && (
+        <div className="notice notice-error" role="alert">
+          <strong>Error al cargar eventos:</strong>{' '}
+          {errorEventos}
+        </div>
+      )}
+
+      {errorCatalogos && (
+        <div className="notice notice-error" role="alert">
+          <strong>Error al cargar catálogos:</strong>{' '}
+          {errorCatalogos}
+        </div>
+      )}
+
+      {mensaje && (
+        <div className="notice notice-ok">
+          <p>{mensaje}</p>
+
+          {!esGerente && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setVista('mis-solicitudes')}
+            >
+              Ver mis solicitudes
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="filtros-container">
-        <select onChange={e => setFiltros({...filtros, clienteId: e.target.value})}>
-          <option value="">Todos los clientes...</option>
-          {dataExtra.clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+
+        <select
+          value={filtros.clienteId}
+          onChange={e => {
+            setFiltros(anterior => ({
+              ...anterior,
+              clienteId: e.target.value
+            }));
+          }}
+          disabled={cargandoCatalogos}
+        >
+          <option value="">Todos los clientes</option>
+
+          {catalogos.clientes.map(cliente => (
+            <option
+              key={cliente.id}
+              value={cliente.id}
+            >
+              {cliente.nombre}
+            </option>
+          ))}
         </select>
-        <select onChange={e => setFiltros({...filtros, lugarId: e.target.value})}>
-          <option value="">Todos los lugares...</option>
-          {dataExtra.lugares.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+
+        <select
+          value={filtros.lugarId}
+          onChange={e => {
+            setFiltros(anterior => ({
+              ...anterior,
+              lugarId: e.target.value
+            }));
+          }}
+          disabled={cargandoCatalogos}
+        >
+          <option value="">Todos los lugares</option>
+
+          {catalogos.lugares.map(lugar => (
+            <option
+              key={lugar.id}
+              value={lugar.id}
+            >
+              {lugar.nombre}
+            </option>
+          ))}
         </select>
+
       </div>
 
       <section className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--hairline)', paddingBottom: '12px' }}>
-          <h2 style={{ margin: 0, border: 'none', padding: 0 }}>Listado de Eventos</h2>
-          
-          <button className="btn" onClick={() => setMostrarModal(true)}>
-            + Nuevo Evento
+
+        <div className="page-heading">
+          <div>
+            <h2>
+              {esGerente
+                ? 'Eventos registrados'
+                : 'Eventos aprobados'}
+            </h2>
+
+            <p>
+              {esGerente
+                ? 'Revisa los eventos y sus estados.'
+                : 'Solo se muestran eventos con presupuesto aprobado.'}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setMensaje('');
+              setMostrarModal(true);
+            }}
+          >
+            + Nueva cotización
           </button>
         </div>
-        
-        <ul className="lista-simple">
-          {eventos.map(ev => (
-            <li key={ev.id}>
-              <strong className="enlace-evento" style={{ cursor: 'pointer' }} onClick={() => setSeleccionado(ev)}>
-                {ev.nombre}
-              </strong>
-              
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <span className={`status ${ev.cancelado ? 'cancelled' : (ev.finalizado ? 'finalizado' : (ev.confirmado ? 'confirmed' : 'pending'))}`}>
-                  {ev.cancelado ? 'CANCELADO' : (ev.finalizado ? 'FINALIZADO' : (ev.confirmado ? 'CONFIRMADO' : 'PENDIENTE'))}
-                </span>
 
-                <button
-                  className="btn btn-ghost"
-                  style={{ padding: '6px 12px', color: 'var(--cancel)', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
-                  onClick={(e) => eliminarEvento(ev, e)}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </li>  
-          ))}
-        </ul>
+        {cargandoEventos && (
+          <p>Cargando eventos...</p>
+        )}
+
+        {!cargandoEventos &&
+          eventos.length === 0 &&
+          !errorEventos && (
+            <p>
+              {esGerente
+                ? 'No hay eventos registrados.'
+                : 'Todavía no hay eventos aprobados.'}
+            </p>
+          )}
+
+        {!cargandoEventos && eventos.length > 0 && (
+          <ul className="lista-simple">
+
+            {eventos.map(evento => (
+              <li key={evento.id}>
+
+                <div>
+                  <strong
+                    className="enlace-evento"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSeleccionado(evento)}
+                  >
+                    {evento.nombre}
+                  </strong>
+
+                  <p className="helper-text">
+                    {fechaCL(evento.fecha)}
+                    {' · '}
+                    {pesos(evento.presupuesto)}
+                  </p>
+
+                  <p className="helper-text">
+                    Cliente:{' '}
+                    {evento.cliente?.nombre || 'Sin cliente'}
+                  </p>
+                </div>
+
+                <div className="presupuesto-actions">
+
+                  <span
+                    className={`status ${estadoClase(
+                      evento.estadoPresupuesto
+                    )}`}
+                  >
+                    {estadoTexto(evento.estadoPresupuesto)}
+                  </span>
+
+                  {esGerente && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => eliminarEvento(evento)}
+                    >
+                      Eliminar
+                    </button>
+                  )}
+
+                </div>
+
+              </li>
+            ))}
+
+          </ul>
+        )}
+
       </section>
 
       {seleccionado && (
         <section className="panel">
-          <h2>Detalle: {seleccionado.nombre}</h2>
-          <p><strong>Fecha:</strong> {new Date(seleccionado.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}</p>
-          <p><strong>Presupuesto:</strong> ${seleccionado.presupuesto?.toLocaleString('es-CL') || 0}</p>
-          
-          <CancelacionEvento 
-            evento={seleccionado} 
-            onActualizado={(evActualizado) => setSeleccionado({...seleccionado, ...evActualizado})} 
-          />
 
-          <FinalizacionEvento
-            evento={seleccionado}
-            onActualizado={(evActualizado) => {
-              setSeleccionado(evActualizado);
-              setEventos(eventos.map((ev) => (ev.id === evActualizado.id ? { ...ev, ...evActualizado } : ev)));
-            }}
-          />
+          <div className="page-heading">
+            <h2>Detalle: {seleccionado.nombre}</h2>
+
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setSeleccionado(null)}
+            >
+              Cerrar detalle
+            </button>
+          </div>
+
+          <p>
+            <strong>Fecha:</strong>{' '}
+            {fechaCL(seleccionado.fecha)}
+          </p>
+
+          <p>
+            <strong>Cliente:</strong>{' '}
+            {seleccionado.cliente?.nombre || 'Sin cliente'}
+          </p>
+
+          <p>
+            <strong>Lugar:</strong>{' '}
+            {seleccionado.lugar?.nombre || 'Sin lugar'}
+          </p>
+
+          <p>
+            <strong>Invitados:</strong>{' '}
+            {seleccionado.numInvitados ?? 'No registrado'}
+          </p>
+
+          <p>
+            <strong>Presupuesto:</strong>{' '}
+            {pesos(seleccionado.presupuesto)}
+          </p>
+
+          <p>
+            <strong>Estado del presupuesto:</strong>{' '}
+            <span
+              className={`status ${estadoClase(
+                seleccionado.estadoPresupuesto
+              )}`}
+            >
+              {estadoTexto(seleccionado.estadoPresupuesto)}
+            </span>
+          </p>
+
+          <p>
+            <strong>Confirmación:</strong>{' '}
+            {seleccionado.confirmado
+              ? 'Confirmado'
+              : 'Sin confirmar'}
+          </p>
+
+          {Array.isArray(seleccionado.detallesCotizacion) &&
+            seleccionado.detallesCotizacion.length > 0 && (
+              <div className="cotizacion-desglose">
+                <h3>Equipos cotizados</h3>
+
+                <ul>
+                  {seleccionado.detallesCotizacion.map(item => (
+                    <li key={item.id}>
+                      {item.nombreEquipo}
+                      {' — '}
+                      {item.cantidad} unidad(es)
+                      {' × '}
+                      {item.diasArriendo} día(s)
+                      {' — '}
+                      {pesos(item.subtotal)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+          {esGerente &&
+            seleccionado.estadoPresupuesto === 'APROBADO' && (
+              <>
+                <CancelacionEvento
+                  evento={seleccionado}
+                  onActualizado={actualizarEvento}
+                />
+
+                <FinalizacionEvento
+                  evento={seleccionado}
+                  onActualizado={actualizarEvento}
+                />
+              </>
+            )}
+
         </section>
       )}
 
       {mostrarModal && (
-        <FormularioNuevoEvento 
-          clientes={dataExtra.clientes} 
-          lugares={dataExtra.lugares}
+        <CotizarEvento
           onCancelar={() => setMostrarModal(false)}
-          onGuardar={(nuevoEvento) => {
-            setMostrarModal(false);
-            
-            console.log("Lo que el backend nos respondió al guardar:", nuevoEvento);
-            
-            if (nuevoEvento && nuevoEvento.id) {
-              setEventos(eventosPrevios => [...eventosPrevios, nuevoEvento]);
-            } else {
-              cargarEventos();
-            }
-          }}
+          onGuardado={cotizacionGuardada}
         />
       )}
+
     </div>
   );
 }
-
-export default EventoCatalogo;

@@ -16,7 +16,7 @@ model Cliente {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  eventos   Evento[]
+  eventos Evento[]
 
   @@map("clientes")
 }
@@ -29,44 +29,53 @@ model Lugar {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  eventos  Evento[]
+  eventos Evento[]
 
   @@map("lugares")
 }
 
 model Evento {
-  id               Int       @id @default(autoincrement())
-  nombre           String    @db.VarChar(100)
-  fecha            DateTime
-  numInvitados     Int
-  presupuesto      Float?
-  confirmado       Boolean   @default(false)
+  id           Int      @id @default(autoincrement())
+  nombre       String   @db.VarChar(100)
+  fecha        DateTime
+  numInvitados Int
+  presupuesto  Float?
+  confirmado   Boolean  @default(false)
 
-  // --- Abono ---
-  fechaPago        DateTime?
-  montoAbono       Float?
+  estadoPresupuesto EstadoPresupuesto @default(PENDIENTE)
 
-  // --- Cancelación y devolución ---
+  revisadoAt    DateTime?
+  revisadoPorId Int?
+  revisadoPor Usuario? @relation("PresupuestosRevisados", fields: [revisadoPorId], references: [id], onDelete: SetNull)
+
+  creadoPorId Int?
+  creadoPor   Usuario? @relation("EventosCreados", fields: [creadoPorId], references: [id], onDelete: SetNull)
+
+  fechaPago  DateTime?
+  montoAbono Float?
+
   cancelado        Boolean   @default(false)
   fechaCancelacion DateTime?
   montoDevolucion  Float?
 
-  finalizadoAt     DateTime?
+  finalizadoAt DateTime?
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  clienteId        Int
-  cliente          Cliente   @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  clienteId Int
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Restrict)
 
-  lugarId          Int
-  lugar            Lugar     @relation(fields: [lugarId], references: [id], onDelete: Restrict)
+  lugarId Int
+  lugar   Lugar @relation(fields: [lugarId], references: [id], onDelete: Restrict)
 
-  reclamos         Reclamo[]
-  evaluaciones     Evaluacion[]
-  incidentes       Incidente[]
-  asignaciones     AsignacionTrabajador[]
-  reservasEquipo   ReservaEquipo[]
+  reclamos       Reclamo[]
+  evaluaciones   Evaluacion[]
+  incidentes     Incidente[]
+  asignaciones   AsignacionTrabajador[]
+  reservasEquipo ReservaEquipo[]
+  costoServicios      Float @default(0)
+  detallesCotizacion  DetalleCotizacionEquipo[]
 
   @@map("eventos")
 }
@@ -78,8 +87,8 @@ model Reclamo {
   mensaje      String   @db.Text
   createdAt    DateTime @default(now())
 
-  eventoId     Int
-  evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  eventoId Int
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   @@map("reclamos")
 }
@@ -101,33 +110,33 @@ enum TipoIncidente {
 }
 
 model Trabajador {
-  id              Int           @id @default(autoincrement())
-  nombre          String        @db.VarChar(100)
-  rolPrincipal    RolTrabajador
+  id           Int           @id @default(autoincrement())
+  nombre       String        @db.VarChar(100)
+  rolPrincipal RolTrabajador
 
-  rut             String?       @unique @db.VarChar(12)
-  email           String?       @db.VarChar(120)
-  telefono        String?       @db.VarChar(20)
-  comuna          String?       @db.VarChar(80)
+  rut      String? @unique @db.VarChar(12)
+  email    String? @db.VarChar(120)
+  telefono String? @db.VarChar(20)
+  comuna   String? @db.VarChar(80)
 
   aniosExperiencia    Int?
-  disponibilidadDias  DiaSemana[]       @default([])
+  disponibilidadDias  DiaSemana[] @default([])
   disponibilidadTurno TurnoDisponible?
 
-  tallaUniforme   String?       @db.VarChar(10)
-  banco           String?       @db.VarChar(60)
-  tipoCuenta      TipoCuenta?
-  numeroCuenta    String?       @db.VarChar(30)
+  tallaUniforme String? @db.VarChar(10)
+  banco         String? @db.VarChar(60)
+  tipoCuenta    TipoCuenta?
+  numeroCuenta  String? @db.VarChar(30)
 
-  activo          Boolean       @default(true)
-  bloqueado       Boolean       @default(false)
+  activo          Boolean  @default(true)
+  bloqueado       Boolean  @default(false)
   promedioGeneral Float?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  evaluaciones Evaluacion[]
-  incidentes   Incidente[]
-  asignaciones AsignacionTrabajador[]
+  evaluaciones   Evaluacion[]
+  incidentes     Incidente[]
+  asignaciones   AsignacionTrabajador[]
   reservasEquipo ReservaEquipo[]
 
   @@map("trabajadores")
@@ -144,13 +153,13 @@ model Evaluacion {
 
   rolEvento RolTrabajador
 
-  llegada                        Int
-  comentarioLlegada               String? @db.Text
-  cumplimientoHorarios            Int
-  comentarioCumplimientoHorarios  String? @db.Text
-  tiemposPreparacion              Int
-  comentarioTiemposPreparacion    String? @db.Text
-  promedioPuntualidad             Float
+  llegada                       Int
+  comentarioLlegada             String? @db.Text
+  cumplimientoHorarios          Int
+  comentarioCumplimientoHorarios String? @db.Text
+  tiemposPreparacion            Int
+  comentarioTiemposPreparacion   String? @db.Text
+  promedioPuntualidad           Float
 
   comunicacion           Int
   comentarioComunicacion String? @db.Text
@@ -176,14 +185,14 @@ model Evaluacion {
   comentarioResolucionTecnica String? @db.Text
   promedioManejoEquipos       Float?
 
-  promedioEvaluacion Float 
+  promedioEvaluacion Float
   adminId            Int?
   modificadoPorId    Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  @@unique([trabajadorId, eventoId]) 
+  @@unique([trabajadorId, eventoId])
   @@map("evaluaciones")
 }
 
@@ -205,10 +214,10 @@ model Incidente {
 }
 
 model PoliticaDevolucion {
-  id          Int   @id @default(autoincrement())
-  diasDesde   Int   // Límite inferior del tramo (ej: 0, 6, 16)
-  diasHasta   Int?  // Límite superior del tramo (ej: 5, 15, null para infinito)
-  porcentaje  Int   // Porcentaje a devolver (ej: 100, 50, 0)
+  id         Int  @id @default(autoincrement())
+  diasDesde  Int
+  diasHasta  Int?
+  porcentaje Int
 }
 
 model AsignacionTrabajador {
@@ -240,7 +249,7 @@ model AuditoriaEvaluacion {
   eventoId     Int
 
   accion          AccionEvaluacion
-  motivo          String?          @db.Text
+  motivo          String? @db.Text
   adminId         Int?
   datosAnteriores Json
 
@@ -305,6 +314,7 @@ model Equipo {
   updatedAt DateTime @updatedAt
 
   reservas ReservaEquipo[]
+  detallesCotizacion DetalleCotizacionEquipo[]
 
   @@map("equipos")
 }
@@ -336,4 +346,65 @@ model ReservaEquipo {
 
   @@unique([equipoId, eventoId])
   @@map("reservas_equipo")
+}
+
+
+enum RolUsuario {
+  GERENTE
+  TRABAJADOR
+}
+
+
+enum EstadoPresupuesto {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+model Usuario {
+  id           Int        @id @default(autoincrement())
+  nombre       String     @db.VarChar(100)
+  email        String     @unique @db.VarChar(120)
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  sesiones              Sesion[]
+  eventosCreados        Evento[] @relation("EventosCreados")
+  presupuestosRevisados Evento[] @relation("PresupuestosRevisados")
+
+  @@map("usuarios")
+}
+
+model Sesion {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique @db.VarChar(64)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  usuarioId Int
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("sesiones")
+}
+
+model DetalleCotizacionEquipo {
+  id Int @id @default(autoincrement())
+
+  eventoId Int
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  equipoId Int?
+  equipo   Equipo? @relation(fields: [equipoId], references: [id], onDelete: SetNull)
+
+  nombreEquipo     String @db.VarChar(100)
+  cantidad         Int
+  diasArriendo     Int
+  precioUnitarioDia Int
+  subtotal         Int
+
+  @@unique([eventoId, equipoId])
+  @@map("detalles_cotizacion_equipo")
 }

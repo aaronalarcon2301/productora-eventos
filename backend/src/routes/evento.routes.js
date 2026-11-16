@@ -1,4 +1,5 @@
 import { Router } from 'express';
+
 import {
   getEventos,
   getEventoById,
@@ -6,29 +7,91 @@ import {
   updateEvento,
   deleteEvento,
   cancelarEvento,
+  getMisSolicitudes,
+  getPresupuestosPendientes,
+  resolverPresupuesto
 } from '../controllers/evento.controller.js';
+
 import {
   getReclamosByEvento,
-  createReclamo,
+  createReclamo
 } from '../controllers/reclamo.controller.js';
+
+import { requireRole } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
-import { createEventoSchema, updateEventoSchema, cancelarEventoSchema } from '../schemas/evento.schema.js';
+
+import {
+  createEventoSchema,
+  updateEventoSchema,
+  cancelarEventoSchema
+} from '../schemas/evento.schema.js';
+
 import { createReclamoSchema } from '../schemas/reclamo.schema.js';
 import { idParamSchema } from '../schemas/cliente.schema.js';
 
 const router = Router();
+const gerente = requireRole('GERENTE');
 
 router.get('/', getEventos);
-router.get('/:id', validate(idParamSchema, 'params'), getEventoById);
-router.post('/', validate(createEventoSchema, 'body'), createEvento);
-router.put('/:id', validate(idParamSchema, 'params'), validate(updateEventoSchema, 'body'), updateEvento);
-router.delete('/:id', validate(idParamSchema, 'params'), deleteEvento);
+router.get('/mis-solicitudes', getMisSolicitudes);
 
-// Requisito: cancelación con cálculo automático de devolución y comprobante
-router.post('/:id/cancelar', validate(idParamSchema, 'params'), validate(cancelarEventoSchema, 'body'), cancelarEvento);
+router.get('/pendientes', gerente, getPresupuestosPendientes);
 
-// Endpoints anidados - reclamos de un evento específico
-router.get('/:id/reclamos', validate(idParamSchema, 'params'), getReclamosByEvento);
-router.post('/:id/reclamos', validate(idParamSchema, 'params'), validate(createReclamoSchema, 'body'), createReclamo);
+router.patch(
+  '/:id/presupuesto',
+  gerente,
+  validate(idParamSchema, 'params'),
+  resolverPresupuesto
+);
+
+router.get(
+  '/:id',
+  validate(idParamSchema, 'params'),
+  getEventoById
+);
+
+router.post(
+  '/',
+  validate(createEventoSchema, 'body'),
+  createEvento
+);
+
+router.put(
+  '/:id',
+  gerente,
+  validate(idParamSchema, 'params'),
+  validate(updateEventoSchema, 'body'),
+  updateEvento
+);
+
+router.delete(
+  '/:id',
+  gerente,
+  validate(idParamSchema, 'params'),
+  deleteEvento
+);
+
+router.post(
+  '/:id/cancelar',
+  gerente,
+  validate(idParamSchema, 'params'),
+  validate(cancelarEventoSchema, 'body'),
+  cancelarEvento
+);
+
+router.get(
+  '/:id/reclamos',
+  gerente,
+  validate(idParamSchema, 'params'),
+  getReclamosByEvento
+);
+
+router.post(
+  '/:id/reclamos',
+  gerente,
+  validate(idParamSchema, 'params'),
+  validate(createReclamoSchema, 'body'),
+  createReclamo
+);
 
 export default router;

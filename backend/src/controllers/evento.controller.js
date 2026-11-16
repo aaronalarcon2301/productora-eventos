@@ -3,7 +3,10 @@ import * as eventoService from '../services/evento.service.js';
 
 export const getEventos = async (req, res, next) => {
   try {
-    const eventos = await eventoService.getAllEventos(req.query);
+    const eventos = await eventoService.getAllEventos(
+    req.query,
+    req.usuario
+);
     res.json(eventos);
   } catch (error) {
     next(error);
@@ -12,7 +15,10 @@ export const getEventos = async (req, res, next) => {
 
 export const getEventoById = async (req, res, next) => {
   try {
-    const evento = await eventoService.getEventoById(req.params.id);
+    const evento = await eventoService.getEventoById(
+    Number(req.params.id),
+    req.usuario
+);
     if (!evento) return res.status(404).json({ error: 'Evento no encontrado' });
     res.json(evento);
   } catch (error) {
@@ -23,6 +29,23 @@ export const getEventoById = async (req, res, next) => {
 export const createEvento = async (req, res, next) => {
   try {
     const { clienteNombre, lugarNombre, clienteId, lugarId, ...datos } = req.body;
+    if (
+      !Number.isFinite(datos.presupuesto) ||
+      datos.presupuesto <= 0
+    ) {
+    return res.status(400).json({
+    error: 'El presupuesto debe ser mayor a cero'
+    });
+    }
+
+const datosSeguro = {
+  ...datos,
+  confirmado: false,
+  fechaPago: null,
+  montoAbono: null,
+  estadoPresupuesto: 'PENDIENTE',
+  creadoPorId: req.usuario.id
+};
 
     const nuevoEvento = await prisma.$transaction(async (tx) => {
       let idCliente = clienteId;
@@ -46,7 +69,7 @@ export const createEvento = async (req, res, next) => {
       }
 
       return tx.evento.create({
-        data: { ...datos, clienteId: idCliente, lugarId: idLugar },
+        data: { ...datosSeguro, clienteId: idCliente, lugarId: idLugar },
         include: { cliente: true, lugar: true },
       });
     });
@@ -59,7 +82,29 @@ export const createEvento = async (req, res, next) => {
 
 export const updateEvento = async (req, res, next) => {
   try {
-    const evento = await eventoService.updateEvento(req.params.id, req.body);
+    const id = Number(req.params.id);
+
+    if (req.body.confirmado === true) {
+      const existente = await eventoService.getEventoById(id);
+
+      if (!existente) {
+        return res.status(404).json({
+          error: 'Evento no encontrado'
+        });
+      }
+
+      if (existente.estadoPresupuesto !== 'APROBADO') {
+        return res.status(409).json({
+          error: 'Primero debe aprobarse el presupuesto'
+        });
+      }
+    }
+
+    const evento = await eventoService.updateEvento(
+      id,
+      req.body
+    );
+
     res.json(evento);
   } catch (error) {
     next(error);
@@ -109,6 +154,103 @@ export const cancelarEvento = async (req, res, next) => {
     };
 
     res.json({ evento: eventoCancelado, comprobante });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMisSolicitudes = async (req, res, next) => {
+  try {
+    const solicitudes = await prisma.evento.findMany({
+      where: {
+        creadoPorId: req.usuario.id
+      },
+      include: {
+        cliente: true,
+        lugar: true,
+        detallesCotizacion: {
+          orderBy: {
+            id: 'asc'
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json(solicitudes);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPresupuestosPendientes = async (req, res, next) => {
+  try {
+    const pendientes = await prisma.evento.findMany({
+      where: {
+        estadoPresupuesto: 'PENDIENTE',
+        cancelado: false
+      },
+      include: {
+        cliente: true,
+        lugar: true,
+        detallesCotizacion: {
+          orderBy: {
+            id: 'asc'
+          }
+        },
+        creadoPor: {
+          select: {
+            nombre: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
+
+    res.json(pendientes);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resolverPresupuesto = async (req, res, next) => {
+  try {
+    const { decision } = req.body || {};
+    const id = Number(req.params.id);
+
+    if (!['APROBADO', 'RECHAZADO'].includes(decision)) {
+      return res.status(400).json({
+        error: 'Decisión inválida'
+      });
+    }
+
+    const resultado = await prisma.evento.updateMany({
+      where: {
+        id,
+        estadoPresupuesto: 'PENDIENTE',
+        cancelado: false
+      },
+      data: {
+        estadoPresupuesto: decision,
+        revisadoPorId: req.usuario.id,
+        revisadoAt: new Date()
+      }
+    });
+
+    if (resultado.count !== 1) {
+      return res.status(409).json({
+        error: 'El presupuesto ya fue revisado o no está disponible'
+      });
+    }
+
+    const evento = await eventoService.getEventoById(id);
+
+    res.json(evento);
   } catch (error) {
     next(error);
   }

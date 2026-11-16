@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { API_URL } from '../api/config';
+import { apiFetch } from '../api/apiFetch';
 
 function LugarList() {
   const [lugares, setLugares] = useState([]);
@@ -10,17 +10,16 @@ function LugarList() {
   const [formData, setFormData] = useState({ nombre: '', ubicacion: '', capacidad: '' });
 
   const cargarLugares = () => {
-    fetch(`${API_URL}/lugares`)
-      .then(res => res.json())
-      .then(data => {
-        setLugares(data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error("Error al cargar los lugares:", error);
-        setLoading(false);
-      });
-  };
+  apiFetch('/lugares')
+    .then(data => {
+      setLugares(data);
+      setLoading(false);
+    })
+    .catch(error => {
+      console.error('Error al cargar lugares:', error);
+      setLoading(false);
+    });
+};
 
   useEffect(() => {
     cargarLugares();
@@ -43,44 +42,48 @@ function LugarList() {
   };
 
   const eliminarLugar = async (id, nombre) => {
-    const confirmado = window.confirm(`¿Estás seguro de que deseas eliminar el lugar "${nombre}"?`);
-    if (!confirmado) return;
+  const confirmado = window.confirm(
+    `¿Estás seguro de eliminar "${nombre}"?`
+  );
 
-    try {
-      const res = await fetch(`${API_URL}/lugares/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Error al eliminar');
-      
-      setLugares(lugares.filter(l => l.id !== id));
-    } catch (error) {
-      alert('Error al eliminar. Es posible que este lugar tenga eventos asociados en el historial. Elimina los eventos primero.');
-    }
-  };
+  if (!confirmado) return;
+
+  try {
+    await apiFetch(`/lugares/${id}`, {
+      method: 'DELETE'
+    });
+
+    setLugares(anteriores =>
+      anteriores.filter(l => l.id !== id)
+    );
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
   const guardarLugar = async (e) => {
-    e.preventDefault();
-    
-    const url = lugarEditando ? `${API_URL}/lugares/${lugarEditando.id}` : `${API_URL}/lugares`;
-    const metodo = lugarEditando ? 'PUT' : 'POST';
+  e.preventDefault();
 
-    try {
-      const res = await fetch(url, {
-        method: metodo,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          ubicacion: formData.ubicacion,
-          capacidad: Number(formData.capacidad)
-        })
-      });
+  const ruta = lugarEditando
+    ? `/lugares/${lugarEditando.id}`
+    : '/lugares';
 
-      if (!res.ok) throw new Error('Error al guardar el lugar');
-      
-      cargarLugares(); 
-      setMostrarModal(false);
-    } catch (error) {
-      alert('Error al guardar el lugar. Verifica la conexión con el servidor.');
-    }
-  };
+  try {
+    await apiFetch(ruta, {
+      method: lugarEditando ? 'PUT' : 'POST',
+      body: {
+        nombre: formData.nombre,
+        ubicacion: formData.ubicacion,
+        capacidad: Number(formData.capacidad)
+      }
+    });
+
+    cargarLugares();
+    setMostrarModal(false);
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
   if (loading) {
     return <div style={{ padding: '40px', color: 'var(--ink-dim)' }}>Cargando lugares...</div>;

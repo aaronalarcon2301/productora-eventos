@@ -287,13 +287,13 @@ async function seedEquipos({ trabajadores, eventosDemo }) {
 
 async function main() {
   console.log('Limpiando datos anteriores...');
-  await prisma.politicaDevolucion.deleteMany(); // <-- NUEVO: limpia las políticas
+  await prisma.politicaDevolucion.deleteMany(); 
   await prisma.reclamo.deleteMany();
   await prisma.evento.deleteMany();
   await prisma.cliente.deleteMany();
   await prisma.lugar.deleteMany();
 
-  console.log('=> Creando políticas de devolución...'); // <-- NUEVO: inserta los tramos
+  console.log('=> Creando políticas de devolución...'); 
   await prisma.politicaDevolucion.createMany({
     data: [
       { diasDesde: 0, diasHasta: 5, porcentaje: 100 },

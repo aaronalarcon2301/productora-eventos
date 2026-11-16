@@ -162,3 +162,308 @@ select option {
 .btn-danger { background: var(--cancel); color: white; }
 .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--hairline); }
 .btn-ghost:hover { background: rgba(255, 255, 255, 0.05); }
+
+/* Pantalla de inicio de sesión */
+
+.login-layout {
+  min-height: 100vh;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  display: grid;
+  grid-template-columns: 1fr 430px;
+  align-items: center;
+  gap: 70px;
+}
+
+.login-intro h1 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 62px);
+  line-height: 1.12;
+  color: var(--ink);
+}
+
+.login-intro > p {
+  font-size: 17px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
+
+.login-eyebrow {
+  color: var(--cue);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.login-roles {
+  margin-top: 36px;
+  display: grid;
+  gap: 16px;
+}
+
+.login-roles div {
+  border-left: 3px solid var(--cue);
+  padding: 4px 15px;
+  display: grid;
+  gap: 4px;
+}
+
+.login-roles span {
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+
+.login-panel {
+  padding: 36px;
+}
+
+.login-panel > p {
+  color: var(--ink-dim);
+  font-size: 14px;
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.login-form label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.login-form input {
+  padding: 13px;
+  margin-bottom: 7px;
+}
+
+.login-submit {
+  width: 100%;
+  padding: 14px;
+  margin-top: 9px;
+}
+
+.login-hint {
+  font-size: 12px;
+  margin-top: 20px;
+}
+
+.login-error,
+.notice-error {
+  color: #ffb8bd;
+}
+
+/* Navegación y usuario conectado */
+
+.navbar {
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.nav-links {
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.user-label small {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.loading-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--cue);
+}
+
+/* Presupuestos y solicitudes */
+
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-heading h1 {
+  margin-bottom: 5px;
+}
+
+.page-heading p {
+  color: var(--ink-dim);
+  margin-top: 0;
+}
+
+.notice {
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.notice-ok {
+  color: var(--confirm);
+}
+
+.presupuesto-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.presupuesto-card {
+  margin-bottom: 0;
+}
+
+.presupuesto-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.presupuesto-card h2 {
+  border: none;
+  margin: 0;
+}
+
+.presupuesto-card p {
+  color: var(--ink-dim);
+}
+
+.presupuesto-total {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--cue);
+  padding: 16px 0;
+}
+
+.presupuesto-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.solicitud-item p,
+.helper-text {
+  color: var(--ink-dim);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.text-link {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+  color: inherit;
+  font: inherit;
+}
+
+@media (max-width: 860px) {
+  .login-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding-top: 36px;
+  }
+
+  .navbar {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .login-panel {
+    padding: 24px;
+  }
+
+  .page-heading {
+    flex-wrap: wrap;
+  }
+
+  .presupuesto-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Formulario de cotizaciones */
+
+.cotizacion-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cotizacion-campos > div {
+  display: grid;
+  gap: 8px;
+}
+
+.cotizacion-campos input {
+  width: 100%;
+}
+
+.cotizacion-tabla {
+  overflow-x: auto;
+  margin: 12px 0 20px;
+}
+
+.cotizacion-tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.cotizacion-tabla th,
+.cotizacion-tabla td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.cotizacion-tabla th {
+  color: var(--ink-dim);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cotizacion-desglose {
+  border-top: 1px solid var(--hairline);
+  padding-top: 16px;
+  margin-top: 18px;
+}
+
+.cotizacion-desglose ul {
+  padding-left: 22px;
+}
+
+.cotizacion-desglose li {
+  margin: 8px 0;
+}
+
+.cotizacion-desglose h3 {
+  margin-top: 0;
+}
+
+@media (max-width: 520px) {
+  .cotizacion-campos {
+    grid-template-columns: 1fr;
+  }
+}

@@ -37,6 +37,12 @@ export async function crearReserva({ equipoId, eventoId, cantidad, responsableId
     const evento = await tx.evento.findUnique({ where: { id: eventoId } });
     if (!evento) throw httpError(404, "El evento no existe.");
     if (evento.cancelado) throw httpError(409, "No se pueden reservar equipos para un evento cancelado.");
+    if (evento.estadoPresupuesto !== 'APROBADO') {
+      throw httpError(
+       409,
+      'El presupuesto debe ser aprobado antes de reservar equipos.'
+    );
+  }
     if (eventoFinalizado(evento)) throw httpError(409, "No se pueden reservar equipos para un evento que ya finalizó.");
 
     if (responsableId) await validarResponsable(tx, responsableId, eventoId);

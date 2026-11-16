@@ -5,12 +5,9 @@ import morgan from 'morgan';
 import router from './src/routes/index.routes.js';
 import { errorHandler } from './src/middlewares/error.middleware.js';
 import prisma from './src/config/prisma.js';
-import politicaRoutes from './src/routes/politica.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-router.use('/politicas', politicaRoutes);
 
 app.use(cors());
 app.use(express.json());
