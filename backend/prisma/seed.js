@@ -94,24 +94,31 @@ async function seedPersonal(clienteId, lugarId) {
   console.log('=> [Personal] Creando trabajadores...');
   const trabajadores = {};
   for (const t of TRABAJADORES_DEMO) {
-    trabajadores[t.clave] = await prisma.trabajador.create({
-      data: {
-        nombre: t.nombre,
-        rut: conDv(t.rut),
-        email: `${t.clave}${DOMINIO_DEMO}`,
-        telefono: t.telefono,
-        comuna: t.comuna,
-        rolPrincipal: t.rol,
-        aniosExperiencia: t.anios,
-        disponibilidadDias: t.dias,
-        disponibilidadTurno: t.turno,
-        tallaUniforme: t.talla,
-        banco: t.banco,
-        tipoCuenta: t.tipoCuenta,
-        numeroCuenta: t.cuenta,
+  trabajadores[t.clave] = await prisma.trabajador.create({
+    data: {
+      nombre: t.nombre,
+      rut: conDv(t.rut),
+      email: `${t.clave}${DOMINIO_DEMO}`,
+      telefono: t.telefono,
+      comuna: t.comuna,
+      rolPrincipal: t.rol,
+      aniosExperiencia: t.anios,
+
+      disponibilidadTurno: t.turno,
+
+      disponibilidades: {
+        create: [...new Set(t.dias)].map((dia) => ({
+          dia
+        }))
       },
-    });
-  }
+
+      tallaUniforme: t.talla,
+      banco: t.banco,
+      tipoCuenta: t.tipoCuenta,
+      numeroCuenta: t.cuenta
+    }
+  });
+}
 
   console.log('=> [Personal] Creando eventos de demo...');
   const eventosDemo = {};
@@ -123,6 +130,7 @@ async function seedPersonal(clienteId, lugarId) {
         numInvitados: e.invitados,
         presupuesto: e.presupuesto,
         confirmado: true,
+        estadoPresupuesto: 'APROBADO',
         clienteId,
         lugarId,
       },
@@ -349,6 +357,7 @@ async function main() {
           numInvitados: faker.number.int({ min: 20, max: 300 }),
           presupuesto,
           confirmado,
+          estadoPresupuesto: confirmado ? 'APROBADO' : 'PENDIENTE',
           fechaPago: confirmado ? faker.date.recent({ days: 30 }) : undefined,
           montoAbono: confirmado ? Math.round(presupuesto * 0.5) : undefined,
           clienteId: faker.helpers.arrayElement(clientes).id,

@@ -46,7 +46,7 @@ model Evento {
 
   revisadoAt    DateTime?
   revisadoPorId Int?
-  revisadoPor Usuario? @relation("PresupuestosRevisados", fields: [revisadoPorId], references: [id], onDelete: SetNull)
+  revisadoPor   Usuario?  @relation("PresupuestosRevisados", fields: [revisadoPorId], references: [id], onDelete: SetNull)
 
   creadoPorId Int?
   creadoPor   Usuario? @relation("EventosCreados", fields: [creadoPorId], references: [id], onDelete: SetNull)
@@ -69,13 +69,13 @@ model Evento {
   lugarId Int
   lugar   Lugar @relation(fields: [lugarId], references: [id], onDelete: Restrict)
 
-  reclamos       Reclamo[]
-  evaluaciones   Evaluacion[]
-  incidentes     Incidente[]
-  asignaciones   AsignacionTrabajador[]
-  reservasEquipo ReservaEquipo[]
-  costoServicios      Float @default(0)
-  detallesCotizacion  DetalleCotizacionEquipo[]
+  reclamos           Reclamo[]
+  evaluaciones       Evaluacion[]
+  incidentes         Incidente[]
+  asignaciones       AsignacionTrabajador[]
+  reservasEquipo     ReservaEquipo[]
+  costoServicios     Float                     @default(0)
+  detallesCotizacion DetalleCotizacionEquipo[]
 
   @@map("eventos")
 }
@@ -120,13 +120,13 @@ model Trabajador {
   comuna   String? @db.VarChar(80)
 
   aniosExperiencia    Int?
-  disponibilidadDias  DiaSemana[] @default([])
   disponibilidadTurno TurnoDisponible?
+  disponibilidades    DisponibilidadTrabajador[]
 
-  tallaUniforme String? @db.VarChar(10)
-  banco         String? @db.VarChar(60)
+  tallaUniforme String?     @db.VarChar(10)
+  banco         String?     @db.VarChar(60)
   tipoCuenta    TipoCuenta?
-  numeroCuenta  String? @db.VarChar(30)
+  numeroCuenta  String?     @db.VarChar(30)
 
   activo          Boolean  @default(true)
   bloqueado       Boolean  @default(false)
@@ -153,13 +153,13 @@ model Evaluacion {
 
   rolEvento RolTrabajador
 
-  llegada                       Int
-  comentarioLlegada             String? @db.Text
-  cumplimientoHorarios          Int
+  llegada                        Int
+  comentarioLlegada              String? @db.Text
+  cumplimientoHorarios           Int
   comentarioCumplimientoHorarios String? @db.Text
-  tiemposPreparacion            Int
+  tiemposPreparacion             Int
   comentarioTiemposPreparacion   String? @db.Text
-  promedioPuntualidad           Float
+  promedioPuntualidad            Float
 
   comunicacion           Int
   comentarioComunicacion String? @db.Text
@@ -206,7 +206,7 @@ model Incidente {
   evento   Evento? @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   tipo   TipoIncidente
-  motivo String? @db.Text
+  motivo String?       @db.Text
 
   createdAt DateTime @default(now())
 
@@ -249,7 +249,7 @@ model AuditoriaEvaluacion {
   eventoId     Int
 
   accion          AccionEvaluacion
-  motivo          String? @db.Text
+  motivo          String?          @db.Text
   adminId         Int?
   datosAnteriores Json
 
@@ -305,7 +305,7 @@ model Equipo {
   descripcion String?         @db.VarChar(255)
 
   cantidadTotal      Int
-  cantidadMantencion Int @default(0)
+  cantidadMantencion Int  @default(0)
   precioArriendoDia  Int?
 
   activo Boolean @default(true)
@@ -313,7 +313,7 @@ model Equipo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reservas ReservaEquipo[]
+  reservas           ReservaEquipo[]
   detallesCotizacion DetalleCotizacionEquipo[]
 
   @@map("equipos")
@@ -348,12 +348,10 @@ model ReservaEquipo {
   @@map("reservas_equipo")
 }
 
-
 enum RolUsuario {
   GERENTE
   TRABAJADOR
 }
-
 
 enum EstadoPresupuesto {
   PENDIENTE
@@ -399,12 +397,22 @@ model DetalleCotizacionEquipo {
   equipoId Int?
   equipo   Equipo? @relation(fields: [equipoId], references: [id], onDelete: SetNull)
 
-  nombreEquipo     String @db.VarChar(100)
-  cantidad         Int
-  diasArriendo     Int
+  nombreEquipo      String @db.VarChar(100)
+  cantidad          Int
+  diasArriendo      Int
   precioUnitarioDia Int
-  subtotal         Int
+  subtotal          Int
 
   @@unique([eventoId, equipoId])
   @@map("detalles_cotizacion_equipo")
+}
+
+model DisponibilidadTrabajador {
+  trabajadorId Int
+  trabajador   Trabajador @relation(fields: [trabajadorId], references: [id], onDelete: Cascade)
+
+  dia DiaSemana
+
+  @@id([trabajadorId, dia])
+  @@map("disponibilidad_trabajador")
 }

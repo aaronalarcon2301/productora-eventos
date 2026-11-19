@@ -23,9 +23,26 @@ export async function recalcularPromedioGeneral(trabajadorId, db = prisma) {
   });
 }
 
+function normalizarDisponibilidad(trabajador) {
+  const { disponibilidades = [], ...resto } = trabajador;
+
+  return {
+    ...resto,
+    disponibilidadDias: disponibilidades.map(item => item.dia)
+  };
+}
+
 function ocultarCuenta(trabajador) {
-  const { numeroCuenta, ...resto } = trabajador;
-  return { ...resto, numeroCuentaUltimos4: numeroCuenta ? numeroCuenta.slice(-4) : null };
+  const normalizado = normalizarDisponibilidad(trabajador);
+
+  const { numeroCuenta, ...resto } = normalizado;
+
+  return {
+    ...resto,
+    numeroCuentaUltimos4: numeroCuenta
+      ? numeroCuenta.slice(-4)
+      : null
+  };
 }
 
 function errorSiRutDuplicado(err) {
@@ -41,20 +58,72 @@ export async function listarTrabajadores(filtros = {}) {
   const trabajadores = await prisma.trabajador.findMany({
     where,
     orderBy: { nombre: "asc" },
-    include: { _count: { select: { evaluaciones: true, incidentes: true } } },
+    include: {
+    disponibilidades: {
+    select: {
+      dia: true
+    }
+  },
+  _count: {
+    select: {
+      evaluaciones: true,
+      incidentes: true
+    }
+  }
+},
   });
   return trabajadores.map(ocultarCuenta);
 }
 
 export async function obtenerTrabajador(id) {
-  const trabajador = await prisma.trabajador.findUnique({ where: { id } });
-  if (!trabajador) throw httpError(404, "Trabajador no encontrado.");
-  return trabajador;
+  const trabajador = await prisma.trabajador.findUnique({
+    where: { id },
+    include: {
+      disponibilidades: {
+        select: {
+          dia: true
+        }
+      }
+    }
+  });
+
+  if (!trabajador) {
+    throw httpError(404, "Trabajador no encontrado.");
+  }
+
+  return normalizarDisponibilidad(trabajador);
 }
 
 export async function crearTrabajador(data) {
   try {
-    return ocultarCuenta(await prisma.trabajador.create({ data }));
+    const { disponibilidadDias, ...otrosDatos } = data;
+
+    const dias = [...new Set(disponibilidadDias ?? [])];
+
+    const trabajador = await prisma.trabajador.create({
+      data: {
+        ...otrosDatos,
+
+        ...(dias.length > 0
+          ? {
+              disponibilidades: {
+                create: dias.map(dia => ({ dia }))
+              }
+            }
+          : {})
+      },
+
+      include: {
+        disponibilidades: {
+          select: {
+            dia: true
+          }
+        }
+      }
+    });
+
+    return ocultarCuenta(trabajador);
+
   } catch (err) {
     return errorSiRutDuplicado(err);
   }
@@ -62,8 +131,51 @@ export async function crearTrabajador(data) {
 
 export async function actualizarTrabajador(id, data) {
   await obtenerTrabajador(id);
+
   try {
-    return ocultarCuenta(await prisma.trabajador.update({ where: { id }, data }));
+    const { disponibilidadDias, ...otrosDatos } = data;
+
+    const dias = disponibilidadDias === undefined
+      ? undefined
+      : [...new Set(disponibilidadDias)];
+
+    const trabajador = await prisma.$transaction(async (tx) => {
+
+      await tx.trabajador.update({
+        where: { id },
+        data: otrosDatos
+      });
+
+      if (dias !== undefined) {
+
+        await tx.disponibilidadTrabajador.deleteMany({
+          where: { trabajadorId: id }
+        });
+
+        if (dias.length > 0) {
+          await tx.disponibilidadTrabajador.createMany({
+            data: dias.map(dia => ({
+              trabajadorId: id,
+              dia
+            }))
+          });
+        }
+      }
+
+      return tx.trabajador.findUnique({
+        where: { id },
+        include: {
+          disponibilidades: {
+            select: {
+              dia: true
+            }
+          }
+        }
+      });
+    });
+
+    return ocultarCuenta(trabajador);
+
   } catch (err) {
     return errorSiRutDuplicado(err);
   }
@@ -104,6 +216,11 @@ export async function obtenerHistorial(trabajadorId) {
         orderBy: { createdAt: "desc" },
         include: { evento: { select: { id: true, nombre: true } } },
       },
+    },
+      disponibilidades: {
+        select: {
+        dia: true
+      }
     },
   });
 
@@ -150,7 +267,9 @@ export async function obtenerHistorial(trabajadorId) {
     telefono: trabajador.telefono,
     comuna: trabajador.comuna,
     aniosExperiencia: trabajador.aniosExperiencia,
-    disponibilidadDias: trabajador.disponibilidadDias,
+    disponibilidadDias: trabajador.disponibilidades.map(
+      item => item.dia
+    ),
     disponibilidadTurno: trabajador.disponibilidadTurno,
     tallaUniforme: trabajador.tallaUniforme,
     estado,
