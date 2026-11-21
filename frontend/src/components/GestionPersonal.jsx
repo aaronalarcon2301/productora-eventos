@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useVistaGuardada } from '../api/vistaGuardada';
 import './personal.css';
 import TrabajadorList from './TrabajadorList';
 import AsignacionPersonal from './AsignacionPersonal';
@@ -13,7 +14,7 @@ const VISTAS = [
 ];
 
 function GestionPersonal() {
-  const [vista, setVista] = useState('trabajadores');
+  const [vista, setVista] = useVistaGuardada('personal', VISTAS.map((v) => v.id), 'trabajadores');
   const [trabajadorId, setTrabajadorId] = useState('');
 
   const irA = (nuevaVista, id) => {

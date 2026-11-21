@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useVistaGuardada } from '../api/vistaGuardada';
 import './personal.css';
 import './equipos.css';
 import InventarioEquipos from './InventarioEquipos';
@@ -12,7 +12,7 @@ const VISTAS = [
 ];
 
 function GestionEquipos() {
-  const [vista, setVista] = useState('inventario');
+  const [vista, setVista] = useVistaGuardada('equipos', VISTAS.map((v) => v.id), 'inventario');
 
   return (
     <section className="pagina">

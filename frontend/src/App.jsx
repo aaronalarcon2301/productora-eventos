@@ -19,6 +19,7 @@ import MisDatos from './components/MisDatos';
 
 import { apiFetch } from './api/apiFetch';
 import { getSession, clearSession } from './api/session';
+import { leerVista, guardarVista, borrarVistas } from './api/vistaGuardada';
 
 const TABS_GERENTE = [
   { id: 'presupuestos', label: 'Presupuestos' },
@@ -52,9 +53,23 @@ const ETIQUETAS_ROL = {
 };
 
 const vistaInicial = (rol) => {
-  if (rol === 'GERENTE') return 'presupuestos';
+  if (rol === 'GERENTE') return 'inicio';
   if (rol === 'PERSONAL') return 'mis-asignaciones';
   return 'eventos';
+};
+
+const TABS_POR_ROL = {
+  GERENTE: TABS_GERENTE,
+  TRABAJADOR: TABS_TRABAJADOR,
+  PERSONAL: TABS_PERSONAL
+};
+
+// Al refrescar vuelve a la pestaña guardada, si todavía corresponde al rol del usuario.
+const vistaAlRecargar = (rol) => {
+  const guardada = leerVista('principal');
+  const validas = (TABS_POR_ROL[rol] ?? []).map((t) => t.id);
+  if (rol === 'GERENTE') validas.push('inicio');
+  return validas.includes(guardada) ? guardada : vistaInicial(rol);
 };
 
 function App() {
@@ -65,6 +80,7 @@ function App() {
   useEffect(() => {
     const sesionExpirada = () => {
       clearSession();
+      borrarVistas();
       setUsuario(null);
       setVista('inicio');
     };
@@ -80,7 +96,7 @@ function App() {
       apiFetch('/auth/me')
         .then(({ usuario: activo }) => {
           setUsuario(activo);
-          setVista(vistaInicial(activo.rol));
+          setVista(vistaAlRecargar(activo.rol));
         })
         .catch(sesionExpirada)
         .finally(() => setCargando(false));
@@ -93,6 +109,11 @@ function App() {
       );
     };
   }, []);
+
+  // Guarda la pestaña actual para poder volver a ella al refrescar la página.
+  useEffect(() => {
+    if (usuario) guardarVista('principal', vista);
+  }, [usuario, vista]);
 
   const ingresar = (usuarioActivo) => {
     setUsuario(usuarioActivo);
@@ -107,6 +128,7 @@ function App() {
     }
 
     clearSession();
+    borrarVistas();
     setUsuario(null);
     setVista('inicio');
   };
@@ -176,7 +198,7 @@ function App() {
       <main className="container">
 
         {esGerente && vista === 'inicio' && (
-          <Inicio setVista={setVista} />
+          <Inicio />
         )}
 
         {esGerente && vista === 'presupuestos' && (
