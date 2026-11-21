@@ -142,6 +142,9 @@ model Trabajador {
   tipoCuenta    TipoCuenta?
   numeroCuenta  String?     @db.VarChar(30)
 
+  usuarioId Int?     @unique
+  usuario   Usuario? @relation("AccesoTrabajador", fields: [usuarioId], references: [id], onDelete: SetNull)
+
   activo          Boolean  @default(true)
   bloqueado       Boolean  @default(false)
   promedioGeneral Float?
@@ -152,8 +155,25 @@ model Trabajador {
   incidentes     Incidente[]
   asignaciones   AsignacionTrabajador[]
   reservasEquipo ReservaEquipo[]
+  archivos       ArchivoTrabajador[]
 
   @@map("trabajadores")
+}
+
+model ArchivoTrabajador {
+  id Int @id @default(autoincrement())
+
+  trabajadorId Int
+  trabajador   Trabajador @relation(fields: [trabajadorId], references: [id], onDelete: Cascade)
+
+  nombre    String   @db.VarChar(150)
+  tipo      String   @db.VarChar(100)
+  tamano    Int
+  contenido Bytes
+  createdAt DateTime @default(now())
+
+  @@index([trabajadorId])
+  @@map("archivos_trabajador")
 }
 
 model Evaluacion {
@@ -245,6 +265,10 @@ model AsignacionTrabajador {
 
   rol       RolTrabajador
   createdAt DateTime      @default(now())
+
+  respuesta           RespuestaAsignacion @default(PENDIENTE)
+  respondidaAt        DateTime?
+  comentarioRespuesta String?             @db.VarChar(200)
 
   @@unique([trabajadorId, eventoId])
   @@map("asignaciones_trabajador")
@@ -365,6 +389,13 @@ model ReservaEquipo {
 enum RolUsuario {
   GERENTE
   TRABAJADOR
+  PERSONAL
+}
+
+enum RespuestaAsignacion {
+  PENDIENTE
+  CONFIRMADA
+  RECHAZADA
 }
 
 enum EstadoPresupuesto {
@@ -387,6 +418,7 @@ model Usuario {
   presupuestosRevisados  Evento[]                  @relation("PresupuestosRevisados")
   itemsCargaActualizados DetalleCotizacionEquipo[] @relation("CambiosCarga")
   reclamosAsignados      Reclamo[]                 @relation("ReclamosResponsables")
+  trabajador             Trabajador?               @relation("AccesoTrabajador")
 
   @@map("usuarios")
 }

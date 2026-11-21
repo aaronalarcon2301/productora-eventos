@@ -74,7 +74,7 @@ export async function listarAsignacionesPorTrabajador(trabajadorId) {
   const [asignaciones, evaluaciones] = await Promise.all([
     prisma.asignacionTrabajador.findMany({
       where: { trabajadorId },
-      include: { evento: { select: { id: true, nombre: true, fecha: true, cancelado: true } } },
+      include: { evento: { select: { id: true, nombre: true, fecha: true, cancelado: true, finalizadoAt: true } } },
     }),
     prisma.evaluacion.findMany({ where: { trabajadorId }, select: { id: true, eventoId: true } }),
   ]);

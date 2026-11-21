@@ -153,3 +153,10 @@
 .pagina .resumen-historial .dato { background: rgba(0, 0, 0, 0.18); border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; min-width: 0; }
 
 .estado-vacio { text-align: center; color: var(--ink-dim); border: 1px dashed var(--hairline); border-radius: 12px; padding: 36px 16px; margin-top: 8px; }
+
+/* Nuevo trabajador: elegir entre formulario y Excel */
+.opciones-nuevo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.opcion-nuevo { border: 1px solid var(--hairline); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.opcion-nuevo h3 { margin: 0; font-size: 1.05rem; }
+.opcion-nuevo p { margin: 0 0 6px; color: var(--ink-dim); font-size: 14px; flex: 1; }
+@media (max-width: 640px) { .opciones-nuevo { grid-template-columns: 1fr; } }

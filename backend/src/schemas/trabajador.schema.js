@@ -100,6 +100,8 @@ function validarDatosBancarios(datos, ctx) {
   }
 }
 
+export const camposTrabajador = campos;
+
 export const crearTrabajadorSchema = z.object(campos).superRefine(validarDatosBancarios);
 
 export const actualizarTrabajadorSchema = z

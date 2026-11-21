@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import AccesoTrabajador from './AccesoTrabajador';
+import NuevoTrabajadorOpciones from './NuevoTrabajadorOpciones';
+import ArchivosTrabajador from './ArchivosTrabajador';
+import { subirArchivo } from '../api/archivos';
 import { apiFetch } from '../api/apiFetch';
 import {
   ROLES,
@@ -64,8 +68,10 @@ function Campo({ etiqueta, requerido, ayuda, children }) {
   );
 }
 
-function FormularioTrabajador({ trabajador, onGuardado, onCancelar }) {
-  const [form, setForm] = useState(trabajador ? formDesdeTrabajador(trabajador) : FORM_VACIO);
+function FormularioTrabajador({ trabajador, precarga, onGuardado, onCancelar }) {
+  const [form, setForm] = useState(
+    trabajador ? formDesdeTrabajador(trabajador) : precarga ? { ...FORM_VACIO, ...precarga.datos } : FORM_VACIO
+  );
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
 
@@ -90,7 +96,15 @@ function FormularioTrabajador({ trabajador, onGuardado, onCancelar }) {
       const guardado = trabajador
         ? await apiFetch(`/trabajadores/${trabajador.id}`, { method: 'PUT', body })
         : await apiFetch('/trabajadores', { method: 'POST', body });
-      onGuardado(guardado, Boolean(trabajador));
+      let avisoArchivo = null;
+      if (!trabajador && precarga?.archivo) {
+        try {
+          await subirArchivo(guardado.id, precarga.archivo);
+        } catch (errArchivo) {
+          avisoArchivo = `El trabajador se registró, pero no se pudo guardar el archivo (${errArchivo.message}). Puedes subirlo de nuevo desde Editar.`;
+        }
+      }
+      onGuardado(guardado, Boolean(trabajador), avisoArchivo);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,9 +113,25 @@ function FormularioTrabajador({ trabajador, onGuardado, onCancelar }) {
   };
 
   return (
+    <>
     <div className="panel">
       <h2>{trabajador ? `Editar a ${trabajador.nombre}` : 'Registrar trabajador'}</h2>
       <form onSubmit={handleSubmit}>
+        {precarga && (
+          <div className="pers-alert ok">
+            Datos cargados desde «{precarga.archivo.name}». Revísalos y guarda: el archivo quedará guardado en la ficha.
+          </div>
+        )}
+        {precarga?.avisos.length > 0 && (
+          <div className="pers-alert error">
+            Revisa estos puntos del Excel:
+            <ul>
+              {precarga.avisos.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         {error && <div className="pers-alert error">{error}</div>}
         <p className="ayuda" style={{ marginTop: 0 }}>Los campos con * son obligatorios.</p>
 
@@ -197,6 +227,8 @@ function FormularioTrabajador({ trabajador, onGuardado, onCancelar }) {
         </div>
       </form>
     </div>
+    {trabajador && <ArchivosTrabajador trabajadorId={trabajador.id} />}
+    </>
   );
 }
 
@@ -205,6 +237,9 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
   const [cargando, setCargando] = useState(true);
   const [aviso, setAviso] = useState(null);
   const [editando, setEditando] = useState(null);
+  const [accesoDe, setAccesoDe] = useState(null);
+  const [eligiendoNuevo, setEligiendoNuevo] = useState(false);
+  const [precarga, setPrecarga] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [version, setVersion] = useState(0);
@@ -229,9 +264,18 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
 
   const recargar = () => setVersion((v) => v + 1);
 
-  const handleGuardado = (trabajador, fueEdicion) => {
+  const cerrarFormulario = () => {
     setEditando(null);
-    setAviso({ tipo: 'ok', texto: fueEdicion ? 'Trabajador actualizado.' : 'Trabajador registrado.' });
+    setPrecarga(null);
+  };
+
+  const handleGuardado = (trabajador, fueEdicion, avisoArchivo) => {
+    cerrarFormulario();
+    setAviso(
+      avisoArchivo
+        ? { tipo: 'error', texto: avisoArchivo }
+        : { tipo: 'ok', texto: fueEdicion ? 'Trabajador actualizado.' : 'Trabajador registrado.' }
+    );
     recargar();
   };
 
@@ -274,12 +318,43 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
   );
   const fichaIncompleta = (t) => !t.rut || !t.email || !t.telefono;
 
+  if (eligiendoNuevo) {
+    return (
+      <NuevoTrabajadorOpciones
+        onFormulario={() => {
+          setEligiendoNuevo(false);
+          setPrecarga(null);
+          setEditando('nuevo');
+        }}
+        onExcel={(carga) => {
+          setEligiendoNuevo(false);
+          setPrecarga(carga);
+          setEditando('nuevo');
+        }}
+        onCancelar={() => setEligiendoNuevo(false)}
+      />
+    );
+  }
+
   if (editando) {
     return (
       <FormularioTrabajador
         trabajador={editando === 'nuevo' ? null : editando}
+        precarga={editando === 'nuevo' ? precarga : null}
         onGuardado={handleGuardado}
-        onCancelar={() => setEditando(null)}
+        onCancelar={cerrarFormulario}
+      />
+    );
+  }
+
+  if (accesoDe) {
+    return (
+      <AccesoTrabajador
+        trabajador={accesoDe}
+        onCerrar={() => {
+          setAccesoDe(null);
+          recargar();
+        }}
       />
     );
   }
@@ -308,7 +383,7 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
           <h2 className="titulo-seccion">Trabajadores eventuales</h2>
           <p className="subtitulo">Personal disponible para asignar a los eventos.</p>
         </div>
-        <button className="btn" onClick={() => { setAviso(null); setEditando('nuevo'); }}>+ Nuevo trabajador</button>
+        <button className="btn" onClick={() => { setAviso(null); setEligiendoNuevo(true); }}>+ Nuevo trabajador</button>
       </div>
 
       {aviso && <div className={`pers-alert ${aviso.tipo}`}>{aviso.texto}</div>}
@@ -367,6 +442,7 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
                     <span className="sin-nota">Sin evaluaciones aún</span>
                   )}
                   {fichaIncompleta(t) && <span className="status pending">Ficha incompleta</span>}
+                  {t.usuarioId != null && <span className="status confirmed">Con acceso</span>}
                 </div>
 
                 <dl className="tarjeta-datos">
@@ -390,6 +466,7 @@ function TrabajadorList({ onEvaluar, onHistorial }) {
                     <button className="btn btn-sm" onClick={() => onHistorial(t.id)}>Historial</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => onEvaluar(t.id)}>Evaluar</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => editar(t)}>Editar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setAccesoDe(t)}>Acceso</button>
                     {!t.activo && <button className="btn btn-ghost btn-sm" onClick={() => reactivar(t)}>Reactivar</button>}
                   </div>
                   <button className="link-peligro" onClick={() => eliminar(t)}>Eliminar</button>

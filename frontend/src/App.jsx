@@ -13,6 +13,9 @@ import GestionEquipos from './components/GestionEquipos';
 import ConfiguracionPoliticas from './components/ConfiguracionPoliticas';
 import ListaCarga from './components/ListaCarga';
 import ReclamosGestion from './components/ReclamosGestion';
+import MisAsignaciones from './components/MisAsignaciones';
+import MisEvaluaciones from './components/MisEvaluaciones';
+import MisDatos from './components/MisDatos';
 
 import { apiFetch } from './api/apiFetch';
 import { getSession, clearSession } from './api/session';
@@ -35,6 +38,24 @@ const TABS_TRABAJADOR = [
   { id: 'lista-carga', label: 'Lista de carga' },
   { id: 'reclamos-gestion', label: 'Reclamos' }
 ];
+
+const TABS_PERSONAL = [
+  { id: 'mis-asignaciones', label: 'Mis asignaciones' },
+  { id: 'mis-evaluaciones', label: 'Mis evaluaciones' },
+  { id: 'mis-datos', label: 'Mis datos' }
+];
+
+const ETIQUETAS_ROL = {
+  GERENTE: 'Gerente',
+  TRABAJADOR: 'Trabajador',
+  PERSONAL: 'Personal'
+};
+
+const vistaInicial = (rol) => {
+  if (rol === 'GERENTE') return 'presupuestos';
+  if (rol === 'PERSONAL') return 'mis-asignaciones';
+  return 'eventos';
+};
 
 function App() {
   const [usuario, setUsuario] = useState(null);
@@ -59,11 +80,7 @@ function App() {
       apiFetch('/auth/me')
         .then(({ usuario: activo }) => {
           setUsuario(activo);
-          setVista(
-            activo.rol === 'GERENTE'
-              ? 'presupuestos'
-              : 'eventos'
-          );
+          setVista(vistaInicial(activo.rol));
         })
         .catch(sesionExpirada)
         .finally(() => setCargando(false));
@@ -79,11 +96,7 @@ function App() {
 
   const ingresar = (usuarioActivo) => {
     setUsuario(usuarioActivo);
-    setVista(
-      usuarioActivo.rol === 'GERENTE'
-        ? 'presupuestos'
-        : 'eventos'
-    );
+    setVista(vistaInicial(usuarioActivo.rol));
   };
 
   const cerrarSesion = async () => {
@@ -111,10 +124,13 @@ function App() {
   }
 
   const esGerente = usuario.rol === 'GERENTE';
+  const esPersonal = usuario.rol === 'PERSONAL';
 
   const tabs = esGerente
     ? TABS_GERENTE
-    : TABS_TRABAJADOR;
+    : esPersonal
+      ? TABS_PERSONAL
+      : TABS_TRABAJADOR;
 
   return (
     <div>
@@ -144,7 +160,7 @@ function App() {
           <div className="user-label">
             <strong>{usuario.nombre}</strong>
             <small>
-              {esGerente ? 'Gerente' : 'Trabajador'}
+              {ETIQUETAS_ROL[usuario.rol]}
             </small>
           </div>
 
@@ -167,14 +183,14 @@ function App() {
           <AprobacionPresupuestos />
         )}
 
-        {vista === 'eventos' && (
+        {!esPersonal && vista === 'eventos' && (
           <EventoCatalogo
             rol={usuario.rol}
             setVista={setVista}
           />
         )}
 
-        {!esGerente && vista === 'mis-solicitudes' && (
+        {!esGerente && !esPersonal && vista === 'mis-solicitudes' && (
           <MisSolicitudes setVista={setVista} />
         )}
 
@@ -198,12 +214,24 @@ function App() {
           <ConfiguracionPoliticas />
         )}
 
-        {vista === 'lista-carga' && (
+        {!esPersonal && vista === 'lista-carga' && (
           <ListaCarga rol={usuario.rol} />
         )}
 
-        {vista === 'reclamos-gestion' && (
+        {!esPersonal && vista === 'reclamos-gestion' && (
           <ReclamosGestion rol={usuario.rol} />
+        )}
+
+        {esPersonal && vista === 'mis-asignaciones' && (
+          <MisAsignaciones />
+        )}
+
+        {esPersonal && vista === 'mis-evaluaciones' && (
+          <MisEvaluaciones />
+        )}
+
+        {esPersonal && vista === 'mis-datos' && (
+          <MisDatos />
         )}
 
       </main>

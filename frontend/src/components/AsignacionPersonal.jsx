@@ -103,8 +103,12 @@ function AsignacionPersonal() {
                 <div>
                   <div className="principal">{a.trabajador.nombre}</div>
                   <div className="meta">{etiquetaRol(a.rol)}</div>
+                  {a.comentarioRespuesta && <div className="meta">Motivo: {a.comentarioRespuesta}</div>}
                 </div>
                 <div className="acciones">
+                  {a.respuesta === 'CONFIRMADA' && <span className="status confirmed">Confirmó</span>}
+                  {a.respuesta === 'RECHAZADA' && <span className="status cancelled">No asistirá</span>}
+                  {a.respuesta === 'PENDIENTE' && <span className="status pending">Sin responder</span>}
                   <span className={`status ${a.evaluada ? 'confirmed' : 'pending'}`}>
                     {a.evaluada ? 'Evaluado' : 'Sin evaluar'}
                   </span>

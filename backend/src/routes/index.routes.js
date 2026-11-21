@@ -21,12 +21,17 @@ import { createClienteSchema } from '../schemas/cliente.schema.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import listasCargaRoutes from './listasCarga.routes.js';
 import reclamoGestionRoutes from './reclamoGestion.routes.js';
+import miPerfilRoutes from './miPerfil.routes.js';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 
 router.use(requireAuth);
+
+const gerenteOTrabajador = requireRole('GERENTE', 'TRABAJADOR');
+
+router.use('/catalogos', gerenteOTrabajador);
 
 router.get('/catalogos', async (req, res, next) => {
   try {
@@ -125,8 +130,8 @@ router.post('/catalogos/lugares', async (req, res, next) => {
 
 const gerente = requireRole('GERENTE');
 
-router.use('/eventos', eventoRoutes);
-router.use('/cotizaciones', cotizacionRoutes);
+router.use('/eventos', gerenteOTrabajador, eventoRoutes);
+router.use('/cotizaciones', gerenteOTrabajador, cotizacionRoutes);
 
 router.use('/clientes', gerente, clienteRoutes);
 router.use('/lugares', gerente, lugarRoutes);
@@ -135,10 +140,11 @@ router.use('/evaluaciones', gerente, evaluacionesRoutes);
 router.use('/incidentes', gerente, incidentesRoutes);
 router.use('/trabajadores', gerente, trabajadoresRoutes);
 router.use('/asignaciones', gerente, asignacionesRoutes);
-router.use('/equipos', equiposRoutes);
+router.use('/equipos', gerenteOTrabajador, equiposRoutes);
 router.use('/reservas-equipo', gerente, reservasEquipoRoutes);
 router.use('/politicas', gerente, politicaRoutes);
 router.use('/listas-carga', listasCargaRoutes);
 router.use('/reclamos-gestion', reclamoGestionRoutes);
+router.use('/mi-perfil', requireRole('PERSONAL'), miPerfilRoutes);
 
 export default router;

@@ -201,6 +201,9 @@ export async function eliminarTrabajador(id) {
   }
 
   await prisma.trabajador.delete({ where: { id } });
+  if (trabajador.usuarioId) {
+    await prisma.usuario.deleteMany({ where: { id: trabajador.usuarioId } });
+  }
   return { accion: "ELIMINADO", mensaje: "Trabajador eliminado correctamente." };
 }
 
@@ -216,11 +219,9 @@ export async function obtenerHistorial(trabajadorId) {
         orderBy: { createdAt: "desc" },
         include: { evento: { select: { id: true, nombre: true } } },
       },
-    },
       disponibilidades: {
-        select: {
-        dia: true
-      }
+        select: { dia: true },
+      },
     },
   });
 
