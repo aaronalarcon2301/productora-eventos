@@ -11,6 +11,8 @@ import EventoCatalogo from './components/EventoCatalogo';
 import GestionPersonal from './components/GestionPersonal';
 import GestionEquipos from './components/GestionEquipos';
 import ConfiguracionPoliticas from './components/ConfiguracionPoliticas';
+import ListaCarga from './components/ListaCarga';
+import ReclamosGestion from './components/ReclamosGestion';
 
 import { apiFetch } from './api/apiFetch';
 import { getSession, clearSession } from './api/session';
@@ -22,12 +24,16 @@ const TABS_GERENTE = [
   { id: 'lugares', label: 'Lugares' },
   { id: 'personal', label: 'Personal' },
   { id: 'equipos', label: 'Equipos' },
-  { id: 'Configurar Politicas', label: 'Políticas' }
+  { id: 'Configurar Politicas', label: 'Políticas' },
+  { id: 'lista-carga', label: 'Lista de carga' },
+  { id: 'reclamos-gestion', label: 'Reclamos' }
 ];
 
 const TABS_TRABAJADOR = [
   { id: 'eventos', label: 'Eventos aprobados' },
-  { id: 'mis-solicitudes', label: 'Mis solicitudes' }
+  { id: 'mis-solicitudes', label: 'Mis solicitudes' },
+  { id: 'lista-carga', label: 'Lista de carga' },
+  { id: 'reclamos-gestion', label: 'Reclamos' }
 ];
 
 function App() {
@@ -190,6 +196,14 @@ function App() {
 
         {esGerente && vista === 'Configurar Politicas' && (
           <ConfiguracionPoliticas />
+        )}
+
+        {vista === 'lista-carga' && (
+          <ListaCarga rol={usuario.rol} />
+        )}
+
+        {vista === 'reclamos-gestion' && (
+          <ReclamosGestion rol={usuario.rol} />
         )}
 
       </main>

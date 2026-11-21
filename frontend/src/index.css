@@ -467,3 +467,47 @@ select option {
     grid-template-columns: 1fr;
   }
 }
+
+/* Mostrar y ocultar contraseña en Login */
+
+.login-password-field {
+  position: relative;
+  width: 100%;
+  margin-bottom: 7px;
+}
+
+.login-password-field input {
+  width: 100%;
+  padding-right: 50px;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.login-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+
+  color: var(--ink-dim);
+  transition: color 0.2s ease;
+}
+
+.login-password-toggle:hover {
+  color: var(--cue);
+}
+
+.login-password-toggle:focus-visible {
+  outline: 2px solid var(--cue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

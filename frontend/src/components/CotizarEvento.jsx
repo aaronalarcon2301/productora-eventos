@@ -34,6 +34,17 @@ export default function CotizarEvento({
   const [mostrarClienteNuevo, setMostrarClienteNuevo] =
     useState(false);
 
+  const [mostrarLugarNuevo, setMostrarLugarNuevo] =
+  useState(false);
+
+  const [lugarNuevo, setLugarNuevo] = useState({
+    nombre: '',
+    ubicacion: '',
+    capacidad: ''
+  });
+
+const [guardandoLugar, setGuardandoLugar] =
+  useState(false);
   const [clienteNuevo, setClienteNuevo] = useState({
     nombre: '',
     email: '',
@@ -171,6 +182,64 @@ export default function CotizarEvento({
       setGuardandoCliente(false);
     }
   };
+
+  const registrarLugar = async () => {
+  const nombre = lugarNuevo.nombre.trim();
+  const ubicacion = lugarNuevo.ubicacion.trim();
+  const capacidad = Number(lugarNuevo.capacidad);
+
+  if (nombre.length < 2) {
+    setError('Ingresa el nombre del lugar.');
+    return;
+  }
+
+  if (ubicacion.length < 2) {
+    setError('Ingresa la ubicación del lugar.');
+    return;
+  }
+
+  if (!Number.isSafeInteger(capacidad) || capacidad < 1) {
+    setError('La capacidad debe ser un número entero mayor a cero.');
+    return;
+  }
+
+  setGuardandoLugar(true);
+  setError('');
+
+  try {
+    const nuevo = await apiFetch('/catalogos/lugares', {
+      method: 'POST',
+      body: {
+        nombre,
+        ubicacion,
+        capacidad
+      }
+    });
+
+    setCatalogos(anterior => ({
+      ...anterior,
+      lugares: [...anterior.lugares, nuevo].sort(
+        (a, b) => a.nombre.localeCompare(b.nombre, 'es')
+      )
+    }));
+
+    cambiar('lugarId', String(nuevo.id));
+
+    setMostrarLugarNuevo(false);
+
+    setLugarNuevo({
+      nombre: '',
+      ubicacion: '',
+      capacidad: ''
+    });
+
+  } catch (err) {
+    setError(err.message);
+
+  } finally {
+    setGuardandoLugar(false);
+  }
+};
 
   const equipoSeleccionado = inventario.find(
     equipo => String(equipo.id) === equipoId
@@ -589,6 +658,90 @@ export default function CotizarEvento({
             ))}
           </select>
 
+          <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() =>
+          setMostrarLugarNuevo(anterior => !anterior)
+          }
+        disabled={guardandoLugar}
+   >
+  + Registrar lugar nuevo
+</button>
+
+{mostrarLugarNuevo && (
+  <div
+    className="panel"
+    style={{ marginTop: 10 }}
+  >
+    <h3>Nuevo lugar</h3>
+
+    <label htmlFor="nuevo-lugar-nombre">
+      Nombre del lugar
+    </label>
+
+    <input
+      id="nuevo-lugar-nombre"
+      value={lugarNuevo.nombre}
+      maxLength={100}
+      onChange={e =>
+        setLugarNuevo({
+          ...lugarNuevo,
+          nombre: e.target.value
+        })
+      }
+      placeholder="Ej: Salón Los Aromos"
+    />
+
+    <label htmlFor="nuevo-lugar-ubicacion">
+      Ubicación
+    </label>
+
+    <input
+      id="nuevo-lugar-ubicacion"
+      value={lugarNuevo.ubicacion}
+      maxLength={100}
+      onChange={e =>
+        setLugarNuevo({
+          ...lugarNuevo,
+          ubicacion: e.target.value
+        })
+      }
+      placeholder="Ej: Concepción"
+    />
+
+    <label htmlFor="nuevo-lugar-capacidad">
+      Capacidad máxima de personas
+    </label>
+
+    <input
+      id="nuevo-lugar-capacidad"
+      type="number"
+      min="1"
+      step="1"
+      value={lugarNuevo.capacidad}
+      onChange={e =>
+        setLugarNuevo({
+          ...lugarNuevo,
+          capacidad: e.target.value
+        })
+      }
+      placeholder="Ej: 150"
+    />
+
+    <button
+      type="button"
+      className="btn"
+      onClick={registrarLugar}
+      disabled={guardandoLugar}
+    >
+              {guardandoLugar
+              ? 'Guardando...'
+              : 'Guardar lugar'}
+            </button>
+        </div>
+        )}
+
           <h3>3. Agregar equipos</h3>
 
           <label htmlFor="equipo-cotizacion">
@@ -606,9 +759,13 @@ export default function CotizarEvento({
             }
           >
             <option value="">
-              {cargandoInventario
-                ? 'Cargando equipos...'
-                : 'Seleccionar equipo'}
+              {!form.fecha
+              ? 'Primero selecciona la fecha del evento'
+              : cargandoInventario
+              ? 'Cargando equipos...'
+              : inventario.length === 0
+              ? 'No hay equipos disponibles'
+              : 'Seleccionar equipo'}
             </option>
 
             {inventario.map(equipo => (
@@ -800,7 +957,7 @@ export default function CotizarEvento({
             >
               {guardando
                 ? 'Enviando cotización...'
-                : 'Enviar al gerente'}
+                : 'Crear cotización'}
             </button>
 
           </div>

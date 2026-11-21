@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+
+  <title>Tu opinión - NES Producciones</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px 14px;
+      background: #101116;
+      color: #f4f4f6;
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      width: 100%;
+      max-width: 550px;
+      margin: auto;
+      padding: 28px;
+      background: #1b1e27;
+      border: 1px solid #303541;
+      border-radius: 14px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      color: #f5ac37;
+    }
+
+    h2 {
+      font-size: 21px;
+      margin-top: 24px;
+    }
+
+    p {
+      color: #b6bfd0;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin: 18px 0 8px;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      color: white;
+      background: #13161d;
+      border: 1px solid #3b4352;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 13px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      background: #f5ac37;
+      color: #151515;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .mensaje {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      background: #292f3a;
+    }
+
+    .oculto {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>NES Producciones</h1>
+
+    <p>
+      Gracias por confiar en nosotros.
+      Queremos conocer tu experiencia para seguir mejorando.
+    </p>
+
+    <div id="mensaje" class="mensaje">
+      Validando invitación...
+    </div>
+
+    <form id="formulario" class="oculto">
+      <h2 id="nombreEvento"></h2>
+
+      <label for="calificacion">
+        ¿Cómo calificarías el servicio?
+      </label>
+
+      <select id="calificacion" required>
+        <option value="5">★★★★★ Excelente</option>
+        <option value="4">★★★★☆ Bueno</option>
+        <option value="3">★★★☆☆ Regular</option>
+        <option value="2">★★☆☆☆ Malo</option>
+        <option value="1">★☆☆☆☆ Muy malo</option>
+      </select>
+
+      <label for="tipo">
+        ¿Qué deseas compartir?
+      </label>
+
+      <select id="tipo" required>
+        <option value="OPINION">Opinión o felicitación</option>
+        <option value="SUGERENCIA">Sugerencia</option>
+        <option value="RECLAMO">Reclamo</option>
+      </select>
+
+      <div id="campoCategoria" class="oculto">
+        <label for="categoria">
+          ¿Con qué se relaciona?
+        </label>
+
+        <select id="categoria">
+          <option value="EQUIPAMIENTO">Equipamiento</option>
+          <option value="PERSONAL_ATENCION">Personal y atención</option>
+          <option value="COBROS_PAGOS">Cobros y pagos</option>
+          <option value="MONTAJE_LOGISTICA">Montaje y logística</option>
+          <option value="OTROS">Otros</option>
+        </select>
+      </div>
+
+      <label for="comentario">
+        Cuéntanos tu experiencia
+      </label>
+
+      <textarea
+        id="comentario"
+        rows="5"
+        required
+        minlength="5"
+        maxlength="2000"
+        placeholder="Escribe tu comentario..."
+      ></textarea>
+
+      <button id="enviar" type="submit">
+        Enviar respuesta
+      </button>
+    </form>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    const baseAPI = ['localhost', '127.0.0.1'].includes(
+      window.location.hostname
+    )
+      ? `http://${window.location.hostname}:3000/api`
+      : `${window.location.origin}/api`;
+
+    const formulario = document.getElementById('formulario');
+    const mensaje = document.getElementById('mensaje');
+    const tipo = document.getElementById('tipo');
+    const categoria = document.getElementById('categoria');
+    const campoCategoria = document.getElementById('campoCategoria');
+    const enviar = document.getElementById('enviar');
+
+    function mostrarMensaje(texto) {
+      mensaje.textContent = texto;
+      mensaje.classList.remove('oculto');
+    }
+
+    function actualizarCategoria() {
+      campoCategoria.classList.toggle(
+        'oculto',
+        tipo.value === 'OPINION'
+      );
+    }
+
+    tipo.addEventListener('change', actualizarCategoria);
+
+    async function leerRespuesta(response) {
+      const datos = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          datos.message || 'No fue posible completar la solicitud.'
+        );
+      }
+
+      return datos;
+    }
+
+    async function cargarInvitacion() {
+      if (!token || !/^[a-f0-9]{64}$/.test(token)) {
+        mostrarMensaje('El enlace de invitación no es válido.');
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${baseAPI}/feedback-publico/${token}`
+        );
+
+        const datos = await leerRespuesta(response);
+
+        document.getElementById('nombreEvento').textContent =
+          datos.evento.nombre;
+
+        formulario.classList.remove('oculto');
+        mensaje.classList.add('oculto');
+
+        actualizarCategoria();
+
+      } catch (error) {
+        mostrarMensaje(error.message);
+      }
+    }
+
+    formulario.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      enviar.disabled = true;
+      mostrarMensaje('Enviando tu respuesta...');
+
+      try {
+        const response = await fetch(
+          `${baseAPI}/feedback-publico/${token}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              tipoFeedback: tipo.value,
+              categoria: tipo.value === 'OPINION'
+                ? 'OTROS'
+                : categoria.value,
+              calificacion: Number(
+                document.getElementById('calificacion').value
+              ),
+              mensaje: document.getElementById('comentario').value.trim()
+            })
+          }
+        );
+
+        await leerRespuesta(response);
+
+        formulario.classList.add('oculto');
+
+        mostrarMensaje(
+          '¡Gracias! Tu respuesta fue registrada correctamente.'
+        );
+
+      } catch (error) {
+        mostrarMensaje(error.message);
+        enviar.disabled = false;
+      }
+    });
+
+    cargarInvitacion();
+  </script>
+</body>
+</html>

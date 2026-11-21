@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Cliente {
-  id        Int      @id @default(autoincrement())
-  nombre    String   @db.VarChar(100)
-  rut       String?  @unique @db.VarChar(12)
-  email     String?  @unique @db.VarChar(120)
-  telefono  String?  @db.VarChar(30)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  nombre        String   @db.VarChar(100)
+  rut           String?  @unique @db.VarChar(12)
+  email         String?  @unique @db.VarChar(120)
+  telefono      String?  @db.VarChar(30)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  observaciones String?  @db.Text
 
   eventos Evento[]
 
@@ -51,6 +52,8 @@ model Evento {
   creadoPorId Int?
   creadoPor   Usuario? @relation("EventosCreados", fields: [creadoPorId], references: [id], onDelete: SetNull)
 
+  invitacionFeedback InvitacionFeedback? @relation("FeedbackEvento")
+
   fechaPago  DateTime?
   montoAbono Float?
 
@@ -81,14 +84,25 @@ model Evento {
 }
 
 model Reclamo {
-  id           Int      @id @default(autoincrement())
-  autor        String   @db.VarChar(100)
+  id           Int          @id @default(autoincrement())
+  autor        String       @db.VarChar(100)
   calificacion Int
-  mensaje      String   @db.Text
-  createdAt    DateTime @default(now())
+  mensaje      String       @db.Text
+  createdAt    DateTime     @default(now())
+  tipoFeedback TipoFeedback @default(RECLAMO)
 
   eventoId Int
   evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  categoria       CategoriaReclamo @default(OTROS)
+  areaResponsable AreaReclamo      @default(ATENCION_CLIENTE)
+  estado          EstadoReclamo    @default(PENDIENTE)
+
+  responsableId Int?
+  responsable   Usuario? @relation("ReclamosResponsables", fields: [responsableId], references: [id], onDelete: SetNull)
+
+  respuesta       String?   @db.Text
+  fechaResolucion DateTime?
 
   @@map("reclamos")
 }
@@ -368,9 +382,11 @@ model Usuario {
   activo       Boolean    @default(true)
   createdAt    DateTime   @default(now())
 
-  sesiones              Sesion[]
-  eventosCreados        Evento[] @relation("EventosCreados")
-  presupuestosRevisados Evento[] @relation("PresupuestosRevisados")
+  sesiones               Sesion[]
+  eventosCreados         Evento[]                  @relation("EventosCreados")
+  presupuestosRevisados  Evento[]                  @relation("PresupuestosRevisados")
+  itemsCargaActualizados DetalleCotizacionEquipo[] @relation("CambiosCarga")
+  reclamosAsignados      Reclamo[]                 @relation("ReclamosResponsables")
 
   @@map("usuarios")
 }
@@ -403,6 +419,13 @@ model DetalleCotizacionEquipo {
   precioUnitarioDia Int
   subtotal          Int
 
+  cantidadCargada    Int       @default(0)
+  observacionCarga   String?   @db.VarChar(255)
+  cargaActualizadaAt DateTime?
+
+  cargaActualizadaPorId Int?
+  cargaActualizadaPor   Usuario? @relation("CambiosCarga", fields: [cargaActualizadaPorId], references: [id], onDelete: SetNull)
+
   @@unique([eventoId, equipoId])
   @@map("detalles_cotizacion_equipo")
 }
@@ -415,4 +438,61 @@ model DisponibilidadTrabajador {
 
   @@id([trabajadorId, dia])
   @@map("disponibilidad_trabajador")
+}
+
+enum CategoriaReclamo {
+  EQUIPAMIENTO
+  PERSONAL_ATENCION
+  COBROS_PAGOS
+  MONTAJE_LOGISTICA
+  OTROS
+}
+
+enum AreaReclamo {
+  AREA_TECNICA
+  OPERACIONES
+  ADMINISTRACION
+  LOGISTICA
+  ATENCION_CLIENTE
+}
+
+enum EstadoReclamo {
+  PENDIENTE
+  EN_REVISION
+  RESUELTO
+}
+
+enum TipoFeedback {
+  OPINION
+  SUGERENCIA
+  RECLAMO
+}
+
+enum EstadoInvitacionFeedback {
+  ENVIANDO
+  ENVIADA
+  ERROR
+  RESPONDIDA
+}
+
+model InvitacionFeedback {
+  id Int @id @default(autoincrement())
+
+  eventoId Int    @unique
+  evento   Evento @relation("FeedbackEvento", fields: [eventoId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique @db.VarChar(64)
+
+  estado EstadoInvitacionFeedback @default(ENVIANDO)
+
+  enviadoAt    DateTime?
+  respondidoAt DateTime?
+  expiraAt     DateTime
+
+  intentos    Int     @default(0)
+  ultimoError String? @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+
+  @@map("invitaciones_feedback")
 }

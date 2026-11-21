@@ -4,6 +4,7 @@ import { formatearFecha } from './personalConstantes';
 import { iniciales } from './clientesUtil';
 import FormularioCliente from './FormularioCliente';
 import FichaCliente from './FichaCliente';
+import ClienteObservaciones from './ClienteObservaciones';
 import './personal.css';
 import './clientes.css';
 
@@ -86,19 +87,21 @@ function ClienteList() {
   }
 
   if (vista.tipo === 'ficha') {
-    return (
-      <div className="pagina">
-        <FichaCliente
-          id={vista.id}
-          onVolver={() => {
-            volverALista();
-            recargar();
-          }}
-          onEditar={(cliente) => setVista({ tipo: 'form', cliente })}
-        />
-      </div>
-    );
-  }
+  return (
+    <div className="pagina">
+      <FichaCliente
+        id={vista.id}
+        onVolver={() => {
+          volverALista();
+          recargar();
+        }}
+        onEditar={(cliente) => setVista({ tipo: 'form', cliente })}
+      />
+
+      <ClienteObservaciones clienteId={vista.id} />
+    </div>
+  );
+}
 
   const termino = busqueda.trim().toLowerCase();
   const visibles = clientes.filter((c) => {

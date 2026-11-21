@@ -19,6 +19,8 @@ import reservasEquipoRoutes from './reservasEquipo.routes.js';
 import { createCliente } from '../controllers/cliente.controller.js';
 import { createClienteSchema } from '../schemas/cliente.schema.js';
 import { validate } from '../middlewares/validate.middleware.js';
+import listasCargaRoutes from './listasCarga.routes.js';
+import reclamoGestionRoutes from './reclamoGestion.routes.js';
 
 const router = Router();
 
@@ -31,17 +33,28 @@ router.get('/catalogos', async (req, res, next) => {
     const [clientes, lugares] = await Promise.all([
       prisma.cliente.findMany({
         select: {
-        id: true,
-        nombre: true,
-        rut: true,
-        email: true,
-        telefono: true
-    },
+          id: true,
+          nombre: true,
+          rut: true,
+          email: true,
+          telefono: true
+        },
         orderBy: { nombre: 'asc' }
-    })
+      }),
+
+      prisma.lugar.findMany({
+        select: {
+          id: true,
+          nombre: true,
+          ubicacion: true,
+          capacidad: true
+        },
+        orderBy: { nombre: 'asc' }
+      })
     ]);
 
     res.json({ clientes, lugares });
+
   } catch (error) {
     next(error);
   }
@@ -52,6 +65,63 @@ router.post(
   validate(createClienteSchema, 'body'),
   createCliente
 );
+
+router.post('/catalogos/lugares', async (req, res, next) => {
+  try {
+    const nombre = typeof req.body?.nombre === 'string'
+      ? req.body.nombre.trim()
+      : '';
+
+    const ubicacion = typeof req.body?.ubicacion === 'string'
+      ? req.body.ubicacion.trim()
+      : '';
+
+    const capacidad = Number(req.body?.capacidad);
+
+    if (nombre.length < 2 || nombre.length > 100) {
+      return res.status(400).json({
+        message: 'El nombre debe tener entre 2 y 100 caracteres.'
+      });
+    }
+
+    if (ubicacion.length < 2 || ubicacion.length > 100) {
+      return res.status(400).json({
+        message: 'La ubicación debe tener entre 2 y 100 caracteres.'
+      });
+    }
+
+    if (!Number.isSafeInteger(capacidad) || capacidad < 1) {
+      return res.status(400).json({
+        message: 'La capacidad debe ser un número entero mayor a cero.'
+      });
+    }
+
+    const lugar = await prisma.lugar.create({
+      data: {
+        nombre,
+        ubicacion,
+        capacidad
+      },
+      select: {
+        id: true,
+        nombre: true,
+        ubicacion: true,
+        capacidad: true
+      }
+    });
+
+    res.status(201).json(lugar);
+
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        message: 'Ya existe un lugar con esos datos.'
+      });
+    }
+
+    next(error);
+  }
+});
 
 const gerente = requireRole('GERENTE');
 
@@ -68,5 +138,7 @@ router.use('/asignaciones', gerente, asignacionesRoutes);
 router.use('/equipos', equiposRoutes);
 router.use('/reservas-equipo', gerente, reservasEquipoRoutes);
 router.use('/politicas', gerente, politicaRoutes);
+router.use('/listas-carga', listasCargaRoutes);
+router.use('/reclamos-gestion', reclamoGestionRoutes);
 
 export default router;
