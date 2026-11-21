@@ -78,7 +78,18 @@
 .rg-numero { color: var(--rg-suave); font-size: 12px; margin-left: 2px; }
 .rg-tarjeta h3 { margin: 0 0 4px; font-size: 17px; line-height: 1.35; }
 .rg-cliente { font-size: 13px; color: var(--rg-suave); margin: 0 0 11px; }
-.rg-comentario { color: #e1e3e9; margin: 0 0 12px; line-height: 1.5; font-size: 14px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rg-comentario {
+  color: #e1e3e9;
+  margin: 0 0 12px;
+  line-height: 1.5;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .rg-detalles { color: var(--rg-suave); font-size: 12px; display: flex; gap: 8px 16px; flex-wrap: wrap; }
 .rg-tarjeta-lateral { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; min-width: 125px; gap: 20px; }
 .rg-estrellas { color: #f4b644; font-size: 17px; white-space: nowrap; }
