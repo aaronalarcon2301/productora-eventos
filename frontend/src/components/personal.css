@@ -160,3 +160,8 @@
 .opcion-nuevo h3 { margin: 0; font-size: 1.05rem; }
 .opcion-nuevo p { margin: 0 0 6px; color: var(--ink-dim); font-size: 14px; flex: 1; }
 @media (max-width: 640px) { .opciones-nuevo { grid-template-columns: 1fr; } }
+
+/* Evaluar: trabajador elegido y botón para cambiarlo */
+.elegido { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 0 4px; }
+.elegido .principal { font-weight: 600; font-size: 1.05rem; }
+.elegido .meta { color: var(--ink-dim); font-size: 13px; }
