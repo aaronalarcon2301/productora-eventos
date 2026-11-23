@@ -1,7 +1,24 @@
-import prisma from '../config/prisma.js';
-import { eventoFinalizado } from '../utils/fechas.js';
 
-const conEstado = (evento) => (evento ? { ...evento, finalizado: eventoFinalizado(evento) } : evento);
+import prisma from '../config/prisma.js';
+
+import {
+  eventoFinalizado
+} from '../utils/fechas.js';
+
+import {
+  contarDiasHabiles,
+  buscarTramo,
+  hoyChile
+} from '../utils/devolucion.js';
+
+const conEstado = evento => (
+  evento
+    ? {
+        ...evento,
+        finalizado: eventoFinalizado(evento)
+      }
+    : evento
+);
 
 export const getAllEventos = (filtros = {}, usuario) => {
   const where = {};
@@ -34,10 +51,14 @@ export const getEventoById = (id, usuario) => {
     .findFirst({
       where: {
         id: Number(id),
+
         ...(usuario?.rol === 'TRABAJADOR'
-          ? { estadoPresupuesto: 'APROBADO' }
+          ? {
+              estadoPresupuesto: 'APROBADO'
+            }
           : {})
       },
+
       include: {
         cliente: true,
         lugar: true
@@ -46,72 +67,178 @@ export const getEventoById = (id, usuario) => {
     .then(conEstado);
 };
 
-export const createEvento = (data) => {
-  return prisma.evento.create({ data });
+export const createEvento = data => {
+  return prisma.evento.create({
+    data
+  });
 };
 
 export const updateEvento = (id, data) => {
-  return prisma.evento.update({ where: { id }, data });
+  return prisma.evento.update({
+    where: { id },
+    data
+  });
 };
 
-export const deleteEvento = (id) => {
-  return prisma.evento.delete({ where: { id } });
+export const deleteEvento = id => {
+  return prisma.evento.delete({
+    where: { id }
+  });
 };
 
-export const eventoExists = async (id) => {
-  const evento = await prisma.evento.findUnique({ where: { id } });
+export const eventoExists = async id => {
+  const evento = await prisma.evento.findUnique({
+    where: { id }
+  });
+
   return evento !== null;
 };
 
-export const contarDiasHabiles = (fechaInicio, fechaFin) => {
-  let contador = 0;
-  const actual = new Date(fechaInicio);
-  actual.setUTCDate(actual.getUTCDate() + 1);
+export { contarDiasHabiles };
 
-  while (actual <= fechaFin) {
-    const diaSemana = actual.getUTCDay(); 
-    if (diaSemana !== 0 && diaSemana !== 6) contador++;
-    actual.setUTCDate(actual.getUTCDate() + 1);
+export function validarEventoParaDevolucion(
+  evento,
+  fechaSolicitud
+) {
+  const problema = (status, mensaje) => {
+    const error = new Error(mensaje);
+    error.status = status;
+    throw error;
+  };
+
+  if (!evento) {
+    problema(404, 'Evento no encontrado.');
   }
 
-  return contador;
-};
-
-export const calcularDevolucion = async (evento, fechaSolicitud) => {
-  const diasHabiles = contarDiasHabiles(evento.fechaPago, fechaSolicitud);
-
-  const politicas = await prisma.politicaDevolucion.findMany();
-
-  let porcentajeAplicar = 0;
-  for (const tramo of politicas) {
-    const superaMinimo = diasHabiles >= tramo.diasDesde;
-    const bajoMaximo = tramo.diasHasta === null || diasHabiles <= tramo.diasHasta;
-
-    if (superaMinimo && bajoMaximo) {
-      porcentajeAplicar = tramo.porcentaje;
-      break;
-    }
+  if (evento.cancelado) {
+    problema(409, 'El evento ya fue cancelado.');
   }
 
-  const decimalPorcentaje = porcentajeAplicar / 100;
-  const montoDevolucion = Math.round(evento.montoAbono * decimalPorcentaje);
+  if (!evento.confirmado) {
+    problema(
+      409,
+      'Solo se pueden cancelar eventos confirmados.'
+    );
+  }
+
+  if (
+    !evento.fechaPago ||
+    !Number.isFinite(evento.montoAbono) ||
+    evento.montoAbono <= 0
+  ) {
+    problema(
+      409,
+      'Debes registrar un abono válido antes de calcular la devolución.'
+    );
+  }
+
+  const fechaPago = new Date(evento.fechaPago)
+    .toISOString()
+    .slice(0, 10);
+
+  const solicitud = fechaSolicitud
+    .toISOString()
+    .slice(0, 10);
+
+  if (solicitud < fechaPago) {
+    problema(
+      400,
+      'La solicitud de cancelación no puede ser anterior al pago del abono.'
+    );
+  }
+
+  if (solicitud > hoyChile()) {
+    problema(
+      400,
+      'La fecha de solicitud no puede ser futura.'
+    );
+  }
+}
+
+export async function calcularDevolucion(
+  evento,
+  fechaSolicitud,
+  db = prisma
+) {
+  validarEventoParaDevolucion(
+    evento,
+    fechaSolicitud
+  );
+
+  const feriados = (process.env.FERIADOS_CL ?? '')
+    .split(',')
+    .map(fecha => fecha.trim())
+    .filter(Boolean);
+
+  const diasHabiles = contarDiasHabiles(
+    evento.fechaPago,
+    fechaSolicitud,
+    feriados
+  );
+
+  const politicas = await db.politicaDevolucion.findMany();
+
+  let tramo;
+
+  try {
+    tramo = buscarTramo(diasHabiles, politicas);
+
+  } catch (err) {
+    const error = new Error(err.message);
+    error.status = 409;
+    throw error;
+  }
+
+  const montoDevolucion = Math.round(
+    evento.montoAbono * tramo.porcentaje / 100
+  );
 
   return {
     diasHabiles,
-    porcentaje: decimalPorcentaje,
+    porcentaje: tramo.porcentaje / 100,
     montoDevolucion
   };
-};
+}
 
-export const cancelarEvento = (id, fechaCancelacion, montoDevolucion) => {
-  return prisma.evento.update({
-    where: { id },
+export async function cancelarEvento(
+  id,
+  fechaCancelacion,
+  montoDevolucion,
+  eventoOriginal
+) {
+
+  const resultado = await prisma.evento.updateMany({
+    where: {
+      id,
+      confirmado: true,
+      cancelado: false,
+      fechaPago: eventoOriginal.fechaPago,
+      montoAbono: eventoOriginal.montoAbono
+    },
+
     data: {
       cancelado: true,
       confirmado: false,
       fechaCancelacion,
-      montoDevolucion,
-    },
-    include: { cliente: true, lugar: true },
+      montoDevolucion
+    }
   });
-};
+
+  if (resultado.count !== 1) {
+    const error = new Error(
+      'El evento o el abono cambiaron. Actualiza la página antes de cancelar.'
+    );
+
+    error.status = 409;
+    throw error;
+  }
+
+  return prisma.evento.findUnique({
+    where: { id },
+
+    include: {
+      cliente: true,
+      lugar: true
+    }
+  });
+}

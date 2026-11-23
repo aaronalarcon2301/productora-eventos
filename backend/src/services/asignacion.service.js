@@ -2,7 +2,7 @@ import prisma from "../config/prisma.js";
 import { httpError } from "../utils/http.js";
 import { eventoFinalizado, inicioDelDia, finDelDia } from "../utils/fechas.js";
 
-export async function asignarTrabajador({ trabajadorId, eventoId, rol }) {
+export async function asignarTrabajador({ trabajadorId, eventoId, rol, turno, horaLlegada }) {
   const trabajador = await prisma.trabajador.findUnique({ where: { id: trabajadorId } });
   if (!trabajador) throw httpError(404, "El trabajador no existe.");
   if (trabajador.bloqueado) {
@@ -36,9 +36,22 @@ export async function asignarTrabajador({ trabajadorId, eventoId, rol }) {
 
   try {
     return await prisma.asignacionTrabajador.create({
-      data: { trabajadorId, eventoId, rol: rol ?? trabajador.rolPrincipal },
-      include: { trabajador: { select: { id: true, nombre: true } } },
-    });
+  data: {
+    trabajadorId,
+    eventoId,
+    rol: rol ?? trabajador.rolPrincipal,
+    turno,
+    horaLlegada
+  },
+  include: {
+    trabajador: {
+      select: {
+        id: true,
+        nombre: true
+      }
+    }
+  }
+});
   } catch (err) {
     if (err.code === "P2002") {
       throw httpError(409, "Este trabajador ya está asignado a este evento.");

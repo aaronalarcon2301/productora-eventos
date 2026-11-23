@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 
 import {
@@ -7,6 +8,7 @@ import {
   updateEvento,
   deleteEvento,
   cancelarEvento,
+  simularDevolucion,
   getMisSolicitudes,
   getPresupuestosPendientes,
   resolverPresupuesto
@@ -17,8 +19,13 @@ import {
   createReclamo
 } from '../controllers/reclamo.controller.js';
 
-import { requireRole } from '../middlewares/auth.middleware.js';
-import { validate } from '../middlewares/validate.middleware.js';
+import {
+  requireRole
+} from '../middlewares/auth.middleware.js';
+
+import {
+  validate
+} from '../middlewares/validate.middleware.js';
 
 import {
   createEventoSchema,
@@ -26,16 +33,30 @@ import {
   cancelarEventoSchema
 } from '../schemas/evento.schema.js';
 
-import { createReclamoSchema } from '../schemas/reclamo.schema.js';
-import { idParamSchema } from '../schemas/cliente.schema.js';
+import {
+  createReclamoSchema
+} from '../schemas/reclamo.schema.js';
+
+import {
+  idParamSchema
+} from '../schemas/cliente.schema.js';
 
 const router = Router();
+
 const gerente = requireRole('GERENTE');
 
 router.get('/', getEventos);
-router.get('/mis-solicitudes', getMisSolicitudes);
 
-router.get('/pendientes', gerente, getPresupuestosPendientes);
+router.get(
+  '/mis-solicitudes',
+  getMisSolicitudes
+);
+
+router.get(
+  '/pendientes',
+  gerente,
+  getPresupuestosPendientes
+);
 
 router.patch(
   '/:id/presupuesto',
@@ -69,6 +90,14 @@ router.delete(
   gerente,
   validate(idParamSchema, 'params'),
   deleteEvento
+);
+
+router.post(
+  '/:id/simular-devolucion',
+  gerente,
+  validate(idParamSchema, 'params'),
+  validate(cancelarEventoSchema, 'body'),
+  simularDevolucion
 );
 
 router.post(

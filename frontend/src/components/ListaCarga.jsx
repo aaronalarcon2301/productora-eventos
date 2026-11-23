@@ -118,21 +118,9 @@ export default function ListaCarga({ rol }) {
   const guardarItem = async (item) => {
     const datos = edicion[item.id];
 
-    const cantidad = Number(
-      datos?.cantidadCargada
-    );
-
-    if (
-      datos?.cantidadCargada === '' ||
-      !Number.isInteger(cantidad) ||
-      cantidad < 0 ||
-      cantidad > item.cantidad
-    ) {
-      setError(
-        `La cantidad cargada de ${item.nombreEquipo} debe estar entre 0 y ${item.cantidad}.`
-      );
-      return;
-    }
+    const cantidad = datos?.cantidadCargada === ''
+      ? null
+      : Number(datos?.cantidadCargada);
 
     setGuardandoId(item.id);
     setError('');
@@ -162,9 +150,10 @@ export default function ListaCarga({ rol }) {
     }
   };
 
-  const bloqueado =
-    rol !== 'TRABAJADOR' ||
-    Boolean(lista?.evento?.finalizadoAt);
+  const finalizado = Boolean(lista?.evento?.finalizadoAt);
+  const puedeEditar =
+    (rol === 'GERENTE' || rol === 'TRABAJADOR') &&
+    !finalizado;
 
   return (
     <section>
@@ -300,11 +289,16 @@ export default function ListaCarga({ rol }) {
             {lista.porcentaje}%
           </p>
 
-          {bloqueado && (
+          {finalizado && (
             <p className="notice">
-              {rol !== 'TRABAJADOR'
-                ? 'El gerente puede revisar el avance; solo los trabajadores registran la carga.'
-                : 'Este evento está finalizado: la lista se puede consultar, pero no modificar.'}
+              Este evento está finalizado. La lista es de solo lectura:
+              se muestran las cantidades y observaciones guardadas.
+            </p>
+          )}
+
+          {!finalizado && !puedeEditar && (
+            <p className="notice">
+              No tienes permisos para editar esta lista de carga.
             </p>
           )}
 
@@ -370,95 +364,96 @@ export default function ListaCarga({ rol }) {
                       </strong>
                     </p>
 
-                    <label
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        marginBottom: 14
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={completado}
-                        onChange={e => cambiarItem(
-                          item.id,
-                          'cantidadCargada',
-                          e.target.checked
-                            ? String(item.cantidad)
-                            : '0'
-                        )}
-                        disabled={
-                          bloqueado ||
-                          guardandoId !== null
-                        }
-                        style={{
-                          width: 18,
-                          height: 18,
-                          flexShrink: 0
-                        }}
-                      />
+                    {puedeEditar ? (
+                      <>
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            marginBottom: 14
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={completado}
+                            onChange={e => cambiarItem(
+                              item.id,
+                              'cantidadCargada',
+                              e.target.checked
+                                ? String(item.cantidad)
+                                : '0'
+                            )}
+                            disabled={guardandoId !== null}
+                            style={{
+                              width: 18,
+                              height: 18,
+                              flexShrink: 0
+                            }}
+                          />
+                          Marcar todas las unidades como cargadas
+                        </label>
 
-                      Marcar todas las unidades como cargadas
-                    </label>
+                        <label htmlFor={`cantidad-${item.id}`}>
+                          Unidades efectivamente cargadas
+                        </label>
 
-                    <label htmlFor={`cantidad-${item.id}`}>
-                      Unidades efectivamente cargadas
-                    </label>
+                        <input
+                          id={`cantidad-${item.id}`}
+                          type="number"
+                          min="0"
+                          max={item.cantidad}
+                          step="1"
+                          value={borrador.cantidadCargada}
+                          onChange={e => cambiarItem(
+                            item.id,
+                            'cantidadCargada',
+                            e.target.value
+                          )}
+                          disabled={guardandoId !== null}
+                          style={{ margin: '8px 0 14px' }}
+                        />
 
-                    <input
-                      id={`cantidad-${item.id}`}
-                      type="number"
-                      min="0"
-                      max={item.cantidad}
-                      step="1"
-                      value={borrador.cantidadCargada}
-                      onChange={e => cambiarItem(
-                        item.id,
-                        'cantidadCargada',
-                        e.target.value
-                      )}
-                      disabled={
-                        bloqueado ||
-                        guardandoId !== null
-                      }
-                      style={{ margin: '8px 0 14px' }}
-                    />
+                        <label htmlFor={`observacion-${item.id}`}>
+                          Observación (opcional)
+                        </label>
 
-                    <label htmlFor={`observacion-${item.id}`}>
-                      Observación (opcional)
-                    </label>
+                        <input
+                          id={`observacion-${item.id}`}
+                          value={borrador.observacionCarga}
+                          onChange={e => cambiarItem(
+                            item.id,
+                            'observacionCarga',
+                            e.target.value
+                          )}
+                          placeholder="Ej: Faltan 2 micrófonos"
+                          disabled={guardandoId !== null}
+                          style={{ margin: '8px 0 14px' }}
+                        />
 
-                    <input
-                      id={`observacion-${item.id}`}
-                      maxLength={255}
-                      value={borrador.observacionCarga}
-                      onChange={e => cambiarItem(
-                        item.id,
-                        'observacionCarga',
-                        e.target.value
-                      )}
-                      placeholder="Ej: Faltan 2 micrófonos"
-                      disabled={
-                        bloqueado ||
-                        guardandoId !== null
-                      }
-                      style={{ margin: '8px 0 14px' }}
-                    />
-
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() => guardarItem(item)}
-                      disabled={
-                        bloqueado ||
-                        guardandoId !== null
-                      }
-                    >
-                      {guardandoId === item.id
-                        ? 'Guardando...'
-                        : 'Guardar carga'}
-                    </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => guardarItem(item)}
+                          disabled={guardandoId !== null}
+                        >
+                          {guardandoId === item.id
+                            ? 'Guardando...'
+                            : 'Guardar carga'}
+                        </button>
+                      </>
+                    ) : (
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        <p style={{ margin: 0 }}>
+                          <strong>Unidades cargadas:</strong>{' '}
+                          {item.cantidadCargada} de {item.cantidad}
+                        </p>
+                        <p style={{ margin: 0, overflowWrap: 'anywhere' }}>
+                          <strong>Observación:</strong>{' '}
+                          {item.observacionCarga || 'Sin observaciones registradas'}
+                        </p>
+                      </div>
+                    )}
 
                     {item.cargaActualizadaAt && (
                       <p

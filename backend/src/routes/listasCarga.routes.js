@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 
 import {
@@ -31,7 +32,7 @@ router.get(
 
 router.patch(
   '/items/:itemId',
-  requireRole('TRABAJADOR'),
+  requireRole('TRABAJADOR', 'GERENTE'),
   validate(actualizarCargaSchema, 'body'),
   controller.actualizarItem
 );

@@ -266,6 +266,13 @@ model AsignacionTrabajador {
   rol       RolTrabajador
   createdAt DateTime      @default(now())
 
+  turno       TurnoAsignacion?
+  horaLlegada String?          @db.VarChar(5)
+
+  notificacionEstado    EstadoNotificacionTurno @default(PENDIENTE)
+  notificacionEnviadaAt DateTime?
+  notificacionError     String?                 @db.VarChar(255)
+
   respuesta           RespuestaAsignacion @default(PENDIENTE)
   respondidaAt        DateTime?
   comentarioRespuesta String?             @db.VarChar(200)
@@ -277,6 +284,18 @@ model AsignacionTrabajador {
 enum AccionEvaluacion {
   EDITADA
   ELIMINADA
+}
+
+enum TurnoAsignacion {
+  DIURNO
+  NOCTURNO
+}
+
+enum EstadoNotificacionTurno {
+  PENDIENTE
+  ENVIANDO
+  ENVIADA
+  ERROR
 }
 
 model AuditoriaEvaluacion {
