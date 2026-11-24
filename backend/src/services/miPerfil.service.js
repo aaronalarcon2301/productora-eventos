@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js";
 import { httpError } from "../utils/http.js";
+import { hashPassword, verifyPassword } from "../utils/password.js";
 import { eventoFinalizado } from "../utils/fechas.js";
 import { actualizarTrabajador } from "./trabajador.service.js";
 import { obtenerEvaluacionesPorTrabajador } from "./evaluacion.service.js";
@@ -43,6 +44,26 @@ export async function actualizarPerfil(usuarioId, datos) {
   const trabajador = await trabajadorDeSesion(usuarioId);
   const actualizado = await actualizarTrabajador(trabajador.id, datos);
   return perfilSeguro(actualizado);
+}
+
+export async function cambiarPassword(usuarioId, tokenHashActual, { passwordActual, passwordNueva }) {
+  await trabajadorDeSesion(usuarioId);
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario || !(await verifyPassword(passwordActual, usuario.passwordHash))) {
+    // 400 y no 401: un 401 haría que la pantalla cierre la sesión.
+    throw httpError(400, "La contraseña actual no es correcta.");
+  }
+
+  const passwordHash = await hashPassword(passwordNueva);
+
+  await prisma.$transaction([
+    prisma.usuario.update({ where: { id: usuarioId }, data: { passwordHash } }),
+    // Cierra las otras sesiones abiertas; la actual sigue activa.
+    prisma.sesion.deleteMany({ where: { usuarioId, tokenHash: { not: tokenHashActual } } }),
+  ]);
+
+  return { mensaje: "Tu contraseña se cambió." };
 }
 
 export async function listarAsignaciones(usuarioId) {

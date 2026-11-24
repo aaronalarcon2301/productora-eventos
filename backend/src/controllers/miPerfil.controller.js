@@ -17,6 +17,14 @@ export async function actualizarPerfil(req, res, next) {
   }
 }
 
+export async function cambiarPassword(req, res, next) {
+  try {
+    res.json(await miPerfilService.cambiarPassword(req.usuario.id, req.tokenHash, req.body));
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function listarAsignaciones(req, res, next) {
   try {
     res.json(await miPerfilService.listarAsignaciones(req.usuario.id));

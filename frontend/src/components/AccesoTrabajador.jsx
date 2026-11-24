@@ -38,11 +38,16 @@ function AccesoTrabajador({ trabajador, onCerrar }) {
         method: 'PUT',
         body: { password },
       });
-      setAcceso(nuevo);
-      setAviso({
-        tipo: 'ok',
-        texto: 'Acceso guardado. Entrégale la clave al trabajador: después no se puede volver a ver.',
-      });
+      const { correo, ...estado } = nuevo;
+      setAcceso(estado);
+      if (correo?.estado === 'ENVIADO') {
+        setAviso({ tipo: 'ok', texto: `Acceso guardado. ${correo.mensaje}` });
+      } else {
+        setAviso({
+          tipo: correo?.estado === 'ERROR' ? 'error' : 'ok',
+          texto: `Acceso guardado. ${correo?.mensaje ?? 'Entrégale la clave al trabajador.'} Después no se puede volver a ver.`,
+        });
+      }
     } catch (err) {
       setAviso({ tipo: 'error', texto: err.message });
     } finally {

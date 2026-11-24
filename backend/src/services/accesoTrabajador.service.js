@@ -1,6 +1,7 @@
 import prisma from "../config/prisma.js";
 import { httpError } from "../utils/http.js";
 import { hashPassword } from "../utils/password.js";
+import { enviarCorreoAcceso } from "./notificacionAcceso.service.js";
 
 async function cargarTrabajador(trabajadorId) {
   const trabajador = await prisma.trabajador.findUnique({
@@ -56,7 +57,14 @@ export async function guardarAcceso(trabajadorId, password) {
     throw err;
   }
 
-  return obtenerAcceso(trabajadorId);
+  const correo = await enviarCorreoAcceso({
+    nombre: trabajador.nombre,
+    email,
+    password,
+    esNuevo: !trabajador.usuario,
+  });
+
+  return { ...(await obtenerAcceso(trabajadorId)), correo };
 }
 
 export async function desactivarAcceso(trabajadorId) {

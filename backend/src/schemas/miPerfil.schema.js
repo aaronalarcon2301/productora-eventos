@@ -15,6 +15,24 @@ export const actualizarMiPerfilSchema = z
     }
   });
 
+export const cambiarPasswordSchema = z
+  .object({
+    passwordActual: z.string({ error: "Ingresa tu contraseña actual." }).min(1, "Ingresa tu contraseña actual."),
+    passwordNueva: z
+      .string({ error: "Ingresa la contraseña nueva." })
+      .min(10, "La contraseña nueva debe tener al menos 10 caracteres.")
+      .max(100, "La contraseña nueva no puede superar los 100 caracteres."),
+  })
+  .superRefine((datos, ctx) => {
+    if (datos.passwordNueva === datos.passwordActual) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["passwordNueva"],
+        message: "La contraseña nueva debe ser distinta de la actual.",
+      });
+    }
+  });
+
 const vacioANull = (valor) => (typeof valor === "string" && valor.trim() === "" ? null : valor);
 
 export const responderAsignacionSchema = z

@@ -8,6 +8,9 @@ function MisDatos() {
   const [form, setForm] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [clave, setClave] = useState({ actual: '', nueva: '', repetir: '' });
+  const [avisoClave, setAvisoClave] = useState(null);
+  const [cambiandoClave, setCambiandoClave] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -58,6 +61,34 @@ function MisDatos() {
       setGuardando(false);
     }
   };
+
+  const cambiarClave = async (e) => {
+    e.preventDefault();
+    setAvisoClave(null);
+    if (clave.nueva.length < 10) {
+      setAvisoClave({ tipo: 'error', texto: 'La contraseña nueva debe tener al menos 10 caracteres.' });
+      return;
+    }
+    if (clave.nueva !== clave.repetir) {
+      setAvisoClave({ tipo: 'error', texto: 'Las contraseñas nuevas no coinciden.' });
+      return;
+    }
+    setCambiandoClave(true);
+    try {
+      await apiFetch('/mi-perfil/password', {
+        method: 'PUT',
+        body: { passwordActual: clave.actual, passwordNueva: clave.nueva },
+      });
+      setClave({ actual: '', nueva: '', repetir: '' });
+      setAvisoClave({ tipo: 'ok', texto: 'Tu contraseña se cambió.' });
+    } catch (err) {
+      setAvisoClave({ tipo: 'error', texto: err.message });
+    } finally {
+      setCambiandoClave(false);
+    }
+  };
+
+  const cambiarCampoClave = (campo) => (e) => setClave((c) => ({ ...c, [campo]: e.target.value }));
 
   return (
     <section className="pagina">
@@ -139,6 +170,34 @@ function MisDatos() {
             <div className="acciones">
               <button type="submit" className="btn" disabled={guardando}>
                 {guardando ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {perfil && (
+        <div className="panel">
+          <h2>Cambiar contraseña</h2>
+          {avisoClave && <div className={`pers-alert ${avisoClave.tipo}`}>{avisoClave.texto}</div>}
+          <form onSubmit={cambiarClave}>
+            <div className="campo">
+              <label>Contraseña actual</label>
+              <input type="password" value={clave.actual} onChange={cambiarCampoClave('actual')} autoComplete="current-password" required />
+            </div>
+            <div className="grid-2">
+              <div className="campo">
+                <label>Contraseña nueva (mínimo 10 caracteres)</label>
+                <input type="password" value={clave.nueva} onChange={cambiarCampoClave('nueva')} autoComplete="new-password" required />
+              </div>
+              <div className="campo">
+                <label>Repite la contraseña nueva</label>
+                <input type="password" value={clave.repetir} onChange={cambiarCampoClave('repetir')} autoComplete="new-password" required />
+              </div>
+            </div>
+            <div className="acciones">
+              <button type="submit" className="btn" disabled={cambiandoClave}>
+                {cambiandoClave ? 'Cambiando…' : 'Cambiar contraseña'}
               </button>
             </div>
           </form>
